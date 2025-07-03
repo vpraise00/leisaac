@@ -241,5 +241,7 @@ class SO101Leader(Device):
             "range_min": v.range_min,
             "range_max": v.range_max,
         } for k, v in calibration.items()}
+        if not os.path.exists(os.path.dirname(self.calibration_path)):
+            os.makedirs(os.path.dirname(self.calibration_path))
         with open(self.calibration_path, 'w') as f:
             json.dump(save_calibration, f, indent=4)
