@@ -1,0 +1,245 @@
+import os
+import numpy as np
+import json
+import torch
+from collections.abc import Callable
+from typing import Dict
+from pynput.keyboard import Listener
+
+from .common.motors import FeetechMotorsBus, Motor, MotorNormMode, MotorCalibration, OperatingMode
+from .common.errors import DeviceAlreadyConnectedError, DeviceNotConnectedError
+from ..device_base import DeviceBase
+
+class Device(DeviceBase):
+    def __init__(self, env):
+        """
+        Args:
+            env (RobotEnv): The environment which contains the robot(s) to control
+                            using this device.
+        """
+        self.env = env
+    
+    def get_device_state(self):
+        raise NotImplementedError
+
+    def input2action(self):
+        raise NotImplementedError
+
+    def advance(self):
+        action = self.input2action()
+        if action is None:
+            return self.env.action_manager.action
+        if action['reset']:
+            return None
+        if not action['started']:
+            return False
+        for key, value in action.items():
+            if isinstance(value, np.ndarray):
+                action[key] = torch.tensor(value, device=self.env.device, dtype=torch.float32)
+        return self.env.cfg.preprocess_device_action(action, self)
+
+
+class SO101Leader(Device):
+    """A SO101 Leader device for SE(3) control.
+    """
+    def __init__(self, env, recalibrate: bool = False):
+        super().__init__(env)
+
+        # calibration
+        self.calibration_path = os.path.join(os.path.dirname(__file__), ".cache", "so101_leader.json")
+        if not os.path.exists(self.calibration_path) or recalibrate:
+            self.calibrate()
+        calibration = self._load_calibration()
+
+        self._bus = FeetechMotorsBus(
+            port="/dev/ttyACM0",
+            motors={
+                "shoulder_pan": Motor(1, "sts3215", MotorNormMode.RANGE_M100_100),
+                "shoulder_lift": Motor(2, "sts3215", MotorNormMode.RANGE_M100_100),
+                "elbow_flex": Motor(3, "sts3215", MotorNormMode.RANGE_M100_100),
+                "wrist_flex": Motor(4, "sts3215", MotorNormMode.RANGE_M100_100),
+                "wrist_roll": Motor(5, "sts3215", MotorNormMode.RANGE_M100_100),
+                "gripper": Motor(6, "sts3215", MotorNormMode.RANGE_0_100),
+            },
+            calibration=calibration,
+        )
+        self._motor_limits = {
+            'shoulder_pan': (-100.0, 100.0),
+            'shoulder_lift': (-100.0, 100.0),
+            'elbow_flex': (-100.0, 100.0),
+            'wrist_flex': (-100.0, 100.0),
+            'wrist_roll': (-100.0, 100.0),
+            'gripper': (0.0, 100.0),
+        }
+
+        # connect
+        self.connect()
+
+        # some flags and callbacks
+        self.started = False
+        self._reset_state = 0
+        self._additional_callbacks = {}
+
+        self.listener = Listener(on_press=self.on_press, on_release=self.on_release)
+        self.listener.start()
+        self._display_controls()
+    
+    def __str__(self) -> str:
+        """Returns: A string containing the information of so101 leader."""
+        msg = f"SO101-Leader device for SE(3) control.\n"
+        msg += "\t----------------------------------------------\n"
+        msg += "\tMove SO101-Leader to control SO101-Follower\n"
+        msg += "\tIf SO101-Follower can't synchronize with SO101-Leader, please add --recalibrate and rerun to recalibrate SO101-Leader.\n"
+        return msg
+    
+    def _display_controls(self):
+        """
+        Method to pretty print controls.
+        """
+
+        def print_command(char, info):
+            char += " " * (30 - len(char))
+            print("{}\t{}".format(char, info))
+
+        print("")
+        print_command("b", "start control")
+        print_command("r", "reset simulation")
+        print_command("move leader", "control follower in the simulation")
+        print_command("Control+C", "quit")
+        print("")
+
+    def on_press(self, key):
+        pass
+
+    def on_release(self, key):
+        """
+        Key handler for key releases.
+        Args:
+            key (str): key that was pressed
+        """
+        try:
+            if key.char=='b':
+                self.started = True
+                self._reset_state = 0
+            elif key.char=='r':
+                self.started = False
+                self._reset_state = 1
+                self._additional_callbacks["R"]()
+        except AttributeError as e:
+            pass
+
+    def get_device_state(self):
+        return self._bus.sync_read("Present_Position")
+
+    def input2action(self):
+        state = {}
+        reset = state["reset"] = bool(self._reset_state)
+        state['started'] = self.started
+        if reset:
+            self._reset_state = False
+            return state
+        state['joint_state'] = self.get_device_state()
+
+        ac_dict = {}
+        ac_dict["reset"] = reset
+        ac_dict['started'] = self.started
+        ac_dict['so101_leader'] = True
+        if reset:
+            return ac_dict
+        ac_dict['joint_state'] = state['joint_state']
+        ac_dict['motor_limits'] = self._motor_limits
+        return ac_dict
+
+    def reset(self):
+        pass
+
+    def add_callback(self, key: str, func: Callable):
+        self._additional_callbacks[key] = func
+
+    @property
+    def is_connected(self) -> bool:
+        return self._bus.is_connected
+
+    def disconnect(self):
+        if not self.is_connected:
+            raise DeviceNotConnectedError(f"SO101-Leader is not connected.")
+        self._bus.disconnect()
+        print("SO101-Leader disconnected.")
+
+    def connect(self):
+        if self.is_connected:
+            raise DeviceAlreadyConnectedError(f"SO101-Leader is already connected.")
+        self._bus.connect()
+        self.configure()
+        print("SO101-Leader connected.")
+    
+    def configure(self) -> None:
+        self._bus.disable_torque()
+        self._bus.configure_motors()
+        for motor in self._bus.motors:
+            self._bus.write("Operating_Mode", motor, OperatingMode.POSITION.value)
+    
+    def calibrate(self):
+        self._bus = FeetechMotorsBus(
+            port="/dev/ttyACM0",
+            motors={
+                "shoulder_pan": Motor(1, "sts3215", MotorNormMode.RANGE_M100_100),
+                "shoulder_lift": Motor(2, "sts3215", MotorNormMode.RANGE_M100_100),
+                "elbow_flex": Motor(3, "sts3215", MotorNormMode.RANGE_M100_100),
+                "wrist_flex": Motor(4, "sts3215", MotorNormMode.RANGE_M100_100),
+                "wrist_roll": Motor(5, "sts3215", MotorNormMode.RANGE_M100_100),
+                "gripper": Motor(6, "sts3215", MotorNormMode.RANGE_0_100),
+            },
+        )
+        self.connect()
+
+        print("\n Running calibration of SO101-Leader")
+        self._bus.disable_torque()
+        for motor in self._bus.motors:
+            self._bus.write("Operating_Mode", motor, OperatingMode.POSITION.value)
+        
+        input("Move SO101-Leader to the middle of its range of motion and press ENTER...")
+        homing_offset = self._bus.set_half_turn_homings()
+        print("Move all joints sequentially through their entire ranges of motion.")
+        print("Recording positions. Press ENTER to stop...")
+        range_mins, range_maxes = self._bus.record_ranges_of_motion()
+
+        calibration = {}
+        for motor, m in self._bus.motors.items():
+            calibration[motor] = MotorCalibration(
+                id=m.id,
+                drive_mode=0,
+                homing_offset=homing_offset[motor],
+                range_min=range_mins[motor],
+                range_max=range_maxes[motor],
+            )
+        self._bus.write_calibration(calibration)
+        self._save_calibration(calibration)
+        print(f"Calibration saved to {self.calibration_path}")
+
+        self.disconnect()
+
+    def _load_calibration(self) -> Dict[str, MotorCalibration]:
+        with open(self.calibration_path, "r") as f:
+            json_data = json.load(f)
+        calibration = {}
+        for motor_name, motor_data in json_data.items():
+            calibration[motor_name] = MotorCalibration(
+                id=int(motor_data["id"]),
+                drive_mode=int(motor_data["drive_mode"]),
+                homing_offset=int(motor_data["homing_offset"]),
+                range_min=int(motor_data["range_min"]),
+                range_max=int(motor_data["range_max"]),
+            )
+        return calibration
+
+    def _save_calibration(self, calibration: Dict[str, MotorCalibration]):
+        save_calibration = {k: {
+            "id": v.id,
+            "drive_mode": v.drive_mode,
+            "homing_offset": v.homing_offset,
+            "range_min": v.range_min,
+            "range_max": v.range_max,
+        } for k, v in calibration.items()}
+        with open(self.calibration_path, 'w') as f:
+            json.dump(save_calibration, f, indent=4)
