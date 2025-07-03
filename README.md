@@ -1,5 +1,7 @@
 # LeIsaac 🚀
 
+![leissaac](https://github.com/user-attachments/assets/45e3deda-4056-4e54-b105-d59e68222335)
+
 This repository provides teleoperation functionality in [IsaacLab](https://isaac-sim.github.io/IsaacLab/main/index.html) using the SO101Leader ([LeRobot](https://github.com/huggingface/lerobot)), including data collection, data conversion, and subsequent policy training.
 
 - 🤖 We use SO101Follower as the robot in IsaacLab and provide relevant teleoperation method.
@@ -114,7 +116,7 @@ python scripts/environments/teleoperation/teleop_se3_agent.py \
   
 If the calibration file does not exist at the specified cache path, or if you launch with `--recalibrate`, you will be prompted to calibrate the SO101Leader.  Please refer to the [documentation](https://huggingface.co/docs/lerobot/so101#calibration-video) for calibration steps.
 
-After entering the IsaacLab window, press the `b` key on your keyboard to start teleoperation. You can then use the specified teleop_device to control the robot in the simulation. If you need to reset the environment after completing your operation, simply press the "r" key.
+After entering the IsaacLab window, press the `b` key on your keyboard to start teleoperation. You can then use the specified teleop_device to control the robot in the simulation. If you need to reset the environment after completing your operation, simply press the `r` key.
 
 **Troubleshooting:**
 
@@ -138,7 +140,7 @@ python scripts/convert/isaaclab2lerobot.py
 
 ## Policy Training 🏋️‍♂️
 
-[GR00T N1.5](https://github.com/NVIDIA/Isaac-GR00T) provides a fine-tuning workflow based on the LeRobot Dataset. We follow this process for policy fine-tuning. You can refer to [nvidia/gr00t-n1.5-so101-tuning](https://huggingface.co/blog/nvidia/gr00t-n1-5-so101-tuning) to fine-tune it with your collected lerobot data. We take pick-orange task as an example.
+[GR00T N1.5](https://github.com/NVIDIA/Isaac-GR00T) provides a fine-tuning workflow based on the LeRobot Dataset. You can refer to [nvidia/gr00t-n1.5-so101-tuning](https://huggingface.co/blog/nvidia/gr00t-n1-5-so101-tuning) to fine-tune it with your collected lerobot data. We take pick-orange task as an example.
 
 - First, collect a pick-orange dataset in simulation.
 - Then, fine-tune GR00T N1.5 using this data.
