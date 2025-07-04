@@ -59,7 +59,7 @@ pip install pynput pyserial deepdiff feetech-servo-sdk
 
 ## Asset Preparation 🏠
 
-We provide an example USD asset—a kitchen scene. Please download it [here]() and extract it into the `assets` directory. The directory structure should look like this:
+We provide an example USD asset—a kitchen scene. Please download related scene [here](https://github.com/LightwheelAI/leisaac/releases/) and extract it into the `assets` directory. The directory structure should look like this:
 
 ```
 <assets>
