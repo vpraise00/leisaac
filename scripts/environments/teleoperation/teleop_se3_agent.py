@@ -95,6 +95,8 @@ def main():
     if args_cli.record:
         env_cfg.recorders.dataset_export_dir_path = output_dir
         env_cfg.recorders.dataset_filename = output_file_name
+    else:
+        env_cfg.recorders = None
     # create environment
     env: ManagerBasedRLEnv = gym.make(task_name, cfg=env_cfg).unwrapped
 
@@ -162,11 +164,11 @@ def main():
                 env.step(actions)
 
                 # print out the current demo count if it has changed
-                if env.recorder_manager.exported_successful_episode_count > current_recorded_demo_count:
+                if args_cli.record and env.recorder_manager.exported_successful_episode_count > current_recorded_demo_count:
                     current_recorded_demo_count = env.recorder_manager.exported_successful_episode_count
                     print(f"Recorded {current_recorded_demo_count} successful demonstrations.")
                 
-                if args_cli.num_demos > 0 and env.recorder_manager.exported_successful_episode_count >= args_cli.num_demos:
+                if args_cli.record and args_cli.num_demos > 0 and env.recorder_manager.exported_successful_episode_count >= args_cli.num_demos:
                     print(f"All {args_cli.num_demos} demonstrations recorded. Exiting the app.")
                     break
             if rate_limiter:
