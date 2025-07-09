@@ -48,6 +48,7 @@ from isaaclab.envs import ManagerBasedRLEnv
 from isaaclab_tasks.utils import parse_env_cfg
 
 from leisaac.devices import Se3Keyboard, SO101Leader
+from leisaac.enhance.managers import StreamingRecorderManager
 
 class RateLimiter:
     """Convenience class for enforcing rates in loops."""
@@ -99,6 +100,12 @@ def main():
         env_cfg.recorders = None
     # create environment
     env: ManagerBasedRLEnv = gym.make(task_name, cfg=env_cfg).unwrapped
+    # replace the original recorder manager with the streaming recorder manager
+    if args_cli.record:
+        del env.recorder_manager
+        env.recorder_manager = StreamingRecorderManager(env_cfg.recorders, env)
+        env.recorder_manager.flush_steps = 100
+        env.recorder_manager.compression = 'lzf'
 
     # create controller
     if args_cli.teleop_device == "keyboard":
