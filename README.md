@@ -95,7 +95,7 @@ python scripts/environments/teleoperation/teleop_se3_agent.py \
     --device=cpu \
     --enable_cameras \
     --record \
-    --dataset_file=./datasets/record_data.hdf5
+    --dataset_file=./datasets/dataset.hdf5
 ```
 
 **Parameter Descriptions:**
