@@ -21,6 +21,7 @@ from leisaac.assets.robots.lerobot import SO101_FOLLOWER_CFG
 from leisaac.assets.scenes.kitchen import KITCHEN_WITH_ORANGE_CFG, KITCHEN_WITH_ORANGE_USD_PATH
 from leisaac.devices.action_process import init_action_cfg, preprocess_device_action
 from leisaac.utils.general_assets import parse_usd_and_create_subassets
+from leisaac.utils.domain_randomization import randomize_object_uniform, randomize_camera_uniform, domain_randomization
 
 
 @configclass
@@ -48,7 +49,7 @@ class PickOrangeSceneCfg(InteractiveSceneCfg):
     )
     front:TiledCameraCfg = TiledCameraCfg(
         prim_path="{ENV_REGEX_NS}/Robot/base/front_camera",
-        offset=TiledCameraCfg.OffsetCfg(pos=(0.0, -0.5, 0.5), rot=(0.1650476, -0.9862856, 0.0, 0.0), convention="ros"), # wxyz
+        offset=TiledCameraCfg.OffsetCfg(pos=(0.0, -0.5, 0.6), rot=(0.1650476, -0.9862856, 0.0, 0.0), convention="ros"), # wxyz
         data_types=["rgb"],
         spawn=sim_utils.PinholeCameraCfg(
             focal_length=28.7,
@@ -90,61 +91,6 @@ class EventCfg:
     )
     # reset to default scene
     reset_all = EventTerm(func=mdp.reset_scene_to_default, mode="reset")
-
-    # randomize orange position
-    reset_orange1_position = EventTerm(
-        func=mdp.reset_root_state_uniform,
-        mode="reset",
-        params={
-            "pose_range": {
-                "x": (-0.05, 0.05),
-                "y": (-0.05, 0.05),
-                "z": (0.0, 0.0),
-            },
-            "velocity_range": {},
-            "asset_cfg": SceneEntityCfg("Orange001")
-        }
-    )
-    reset_orange2_position = EventTerm(
-        func=mdp.reset_root_state_uniform,
-        mode="reset",
-        params={
-            "pose_range": {
-                "x": (-0.05, 0.05),
-                "y": (-0.05, 0.05),
-                "z": (0.0, 0.0),
-            },
-            "velocity_range": {},
-            "asset_cfg": SceneEntityCfg("Orange002")
-        }
-    )
-    reset_orange3_position = EventTerm(
-        func=mdp.reset_root_state_uniform,
-        mode="reset",
-        params={
-            "pose_range": {
-                "x": (-0.05, 0.05),
-                "y": (-0.05, 0.05),
-                "z": (0.0, 0.0),
-            },
-            "velocity_range": {},
-            "asset_cfg": SceneEntityCfg("Orange003")
-        }
-    )
-    # randomize plate position
-    reset_plate_position = EventTerm(
-        func=mdp.reset_root_state_uniform,
-        mode="reset",
-        params={
-            "pose_range": {
-                "x": (-0.05, 0.05),
-                "y": (-0.05, 0.05),
-                "z": (0.0, 0.0),
-            },
-            "velocity_range": {},
-            "asset_cfg": SceneEntityCfg("Plate")
-        }
-    )
 
 @configclass
 class ObservationsCfg:
@@ -207,6 +153,18 @@ class PickOrangeEnvCfg(ManagerBasedRLEnvCfg):
         self.sim.render.enable_translucency = True
 
         parse_usd_and_create_subassets(KITCHEN_WITH_ORANGE_USD_PATH, self, specific_name_list=['Orange001', 'Orange002', 'Orange003', 'Plate'])
+
+        domain_randomization(self, random_options=[
+            randomize_object_uniform("Orange001", pose_range={"x": (-0.05, 0.05), "y": (-0.05, 0.05), "z": (0.0, 0.0)}),
+            randomize_object_uniform("Orange002", pose_range={"x": (-0.05, 0.05), "y": (-0.05, 0.05), "z": (0.0, 0.0)}),
+            randomize_object_uniform("Orange003", pose_range={"x": (-0.05, 0.05), "y": (-0.05, 0.05), "z": (0.0, 0.0)}),
+            randomize_object_uniform("Plate", pose_range={"x": (-0.05, 0.05), "y": (-0.05, 0.05), "z": (0.0, 0.0)}),
+            randomize_camera_uniform("front", pose_range={
+                "x": (-0.05, 0.05), "y": (-0.05, 0.05), "z": (-0.05, 0.05), 
+                "roll": (-5 * torch.pi / 180, 5 * torch.pi / 180),
+                "pitch": (-5 * torch.pi / 180, 5 * torch.pi / 180),
+                "yaw": (-5 * torch.pi / 180, 5 * torch.pi / 180)}, convention="ros"),
+        ])
 
     def use_teleop_device(self, teleop_device) -> None:
         self.actions = init_action_cfg(self.actions, device=teleop_device)
