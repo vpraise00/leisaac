@@ -42,8 +42,9 @@ class Device(DeviceBase):
 class SO101Leader(Device):
     """A SO101 Leader device for SE(3) control.
     """
-    def __init__(self, env, recalibrate: bool = False):
+    def __init__(self, env, port: str = '/dev/ttyACM0', recalibrate: bool = False):
         super().__init__(env)
+        self.port = port
 
         # calibration
         self.calibration_path = os.path.join(os.path.dirname(__file__), ".cache", "so101_leader.json")
@@ -52,7 +53,7 @@ class SO101Leader(Device):
         calibration = self._load_calibration()
 
         self._bus = FeetechMotorsBus(
-            port="/dev/ttyACM0",
+            port=self.port,
             motors={
                 "shoulder_pan": Motor(1, "sts3215", MotorNormMode.RANGE_M100_100),
                 "shoulder_lift": Motor(2, "sts3215", MotorNormMode.RANGE_M100_100),
@@ -181,7 +182,7 @@ class SO101Leader(Device):
     
     def calibrate(self):
         self._bus = FeetechMotorsBus(
-            port="/dev/ttyACM0",
+            port=self.port,
             motors={
                 "shoulder_pan": Motor(1, "sts3215", MotorNormMode.RANGE_M100_100),
                 "shoulder_lift": Motor(2, "sts3215", MotorNormMode.RANGE_M100_100),

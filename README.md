@@ -91,6 +91,7 @@ You can run teleoperation tasks with the following script:
 python scripts/environments/teleoperation/teleop_se3_agent.py \
     --task=LeIsaac-SO101-PickOrange-v0 \
     --teleop_device=so101leader \
+    --port=/dev/ttyACM0 \
     --num_envs=1 \
     --device=cpu \
     --enable_cameras \
@@ -103,6 +104,8 @@ python scripts/environments/teleoperation/teleop_se3_agent.py \
 - `--task`: Specify the task environment name to run, e.g., `LeIsaac-SO101-PickOrange-v0`.
 
 - `--teleop_device`: Specify the teleoperation device type, e.g., `so101leader`, `keyboard`.
+
+-  `--port`: Specify the port of teleoperation device, e.g., `/dev/ttyACM0`. only used when teleop_device is `so101leader`.
 
 - `--num_envs`: Set the number of parallel simulation environments, usually `1` for teleoperation.
 

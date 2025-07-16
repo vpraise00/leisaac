@@ -17,6 +17,7 @@ from isaaclab.app import AppLauncher
 parser = argparse.ArgumentParser(description="Keyboard teleoperation for Isaac Lab environments.")
 parser.add_argument("--num_envs", type=int, default=1, help="Number of environments to simulate.")
 parser.add_argument("--teleop_device", type=str, default="keyboard", choices=['keyboard', 'so101leader'], help="Device for interacting with environment")
+parser.add_argument("--port", type=str, default='/dev/ttyACM0', help="Port for the teleop device:so101leader, default is /dev/ttyACM0")
 parser.add_argument("--task", type=str, default=None, help="Name of the task.")
 parser.add_argument("--sensitivity", type=float, default=1.0, help="Sensitivity factor.")
 
@@ -124,7 +125,7 @@ def main():
     #                                     img_shape=image_size,
     #                                     shm_name=shm.name,)
     elif args_cli.teleop_device == "so101leader":
-        teleop_interface = SO101Leader(env, recalibrate=args_cli.recalibrate)
+        teleop_interface = SO101Leader(env, port=args_cli.port, recalibrate=args_cli.recalibrate)
     else:
         raise ValueError(
             f"Invalid device interface '{args_cli.teleop_device}'. Supported: 'keyboard', 'vr', 'so101leader'."

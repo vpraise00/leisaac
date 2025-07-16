@@ -103,6 +103,7 @@ class Se3Keyboard(Device):
         msg += "\tJoint 5 (wrist_roll):    S/K\n"
         msg += "\tJoint 6 (gripper):       D/L\n"
         msg += "\t----------------------------------------------\n"
+        msg += "\tStart Control: B\n"
         msg += "\tReset: R\n"
         msg += "\tControl+C: quit"
         return msg
