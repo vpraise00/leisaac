@@ -18,17 +18,17 @@ from isaaclab.scene import InteractiveSceneCfg
 from isaaclab.utils import configclass
 
 from leisaac.assets.robots.lerobot import SO101_FOLLOWER_CFG
-from leisaac.assets.scenes.kitchen import KITCHEN_WITH_ORANGE_CFG, KITCHEN_WITH_ORANGE_USD_PATH
+from leisaac.assets.scenes.toyroom import LIGHTWHEEL_TOYROOM_CFG, LIGHTWHEEL_TOYROOM_USD_PATH
 from leisaac.devices.action_process import init_action_cfg, preprocess_device_action
 from leisaac.utils.general_assets import parse_usd_and_create_subassets
 from leisaac.utils.domain_randomization import randomize_object_uniform, randomize_camera_uniform, domain_randomization
 
 
 @configclass
-class PickOrangeSceneCfg(InteractiveSceneCfg):
-    """Scene configuration for the pick orange task."""
+class CleanToyTableSceneCfg(InteractiveSceneCfg):
+    """Scene configuration for the clean top table task."""
 
-    scene: AssetBaseCfg = KITCHEN_WITH_ORANGE_CFG.replace(prim_path="{ENV_REGEX_NS}/Scene")
+    scene: AssetBaseCfg = LIGHTWHEEL_TOYROOM_CFG.replace(prim_path="{ENV_REGEX_NS}/Scene")
 
     robot: ArticulationCfg = SO101_FOLLOWER_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
 
@@ -125,10 +125,10 @@ class TerminationsCfg:
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
 
 @configclass
-class PickOrangeEnvCfg(ManagerBasedRLEnvCfg):
-    """Configuration for the pick orange environment."""
+class CleanToyTableEnvCfg(ManagerBasedRLEnvCfg):
+    """Configuration for the clean top table environment."""
 
-    scene: PickOrangeSceneCfg = PickOrangeSceneCfg(env_spacing=8.0)
+    scene: CleanToyTableSceneCfg = CleanToyTableSceneCfg(env_spacing=8.0)
 
     observations: ObservationsCfg = ObservationsCfg()
     actions: ActionsCfg = ActionsCfg()
@@ -144,27 +144,17 @@ class PickOrangeEnvCfg(ManagerBasedRLEnvCfg):
 
         self.decimation = 1
         self.episode_length_s = 8.0
-        self.viewer.eye = (1.4, -0.9, 1.2)
-        self.viewer.lookat = (2.0, -0.5, 1.0)
+        self.viewer.eye = (-1.5, -2.0, 1.5)
+        self.viewer.lookat = (-0.2, -0.3, 0.5)
         self.actions = init_action_cfg(self.actions)
 
         self.sim.physx.bounce_threshold_velocity = 0.01
         self.sim.physx.friction_correlation_distance = 0.00625
         self.sim.render.enable_translucency = True
 
-        parse_usd_and_create_subassets(KITCHEN_WITH_ORANGE_USD_PATH, self, specific_name_list=['Orange001', 'Orange002', 'Orange003', 'Plate'])
+        self.scene.robot.init_state.pos = (-0.42, -0.26, 0.43)
 
-        domain_randomization(self, random_options=[
-            randomize_object_uniform("Orange001", pose_range={"x": (-0.05, 0.05), "y": (-0.05, 0.05), "z": (0.0, 0.0)}),
-            randomize_object_uniform("Orange002", pose_range={"x": (-0.05, 0.05), "y": (-0.05, 0.05), "z": (0.0, 0.0)}),
-            randomize_object_uniform("Orange003", pose_range={"x": (-0.05, 0.05), "y": (-0.05, 0.05), "z": (0.0, 0.0)}),
-            randomize_object_uniform("Plate", pose_range={"x": (-0.05, 0.05), "y": (-0.05, 0.05), "z": (0.0, 0.0)}),
-            randomize_camera_uniform("front", pose_range={
-                "x": (-0.05, 0.05), "y": (-0.05, 0.05), "z": (-0.05, 0.05), 
-                "roll": (-5 * torch.pi / 180, 5 * torch.pi / 180),
-                "pitch": (-5 * torch.pi / 180, 5 * torch.pi / 180),
-                "yaw": (-5 * torch.pi / 180, 5 * torch.pi / 180)}, convention="ros"),
-        ])
+        parse_usd_and_create_subassets(LIGHTWHEEL_TOYROOM_USD_PATH, self)
 
     def use_teleop_device(self, teleop_device) -> None:
         self.actions = init_action_cfg(self.actions, device=teleop_device)
