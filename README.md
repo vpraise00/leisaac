@@ -8,9 +8,10 @@ This repository provides teleoperation functionality in [IsaacLab](https://isaac
 - 🔄 We offer scripts to convert data from HDF5 format to the LeRobot Dataset.
 - 🧠 We utilize simulation-collected data to fine-tune [GR00T N1.5](https://github.com/NVIDIA/Isaac-GR00T) and deploy it on real hardware.
 
-***Welcome to the Lightwheel open-source community!***
-
-Join us, contribute, and help shape the future of AI and robotics. For questions or collaboration, contact [Zeyu](mailto:zeyu.hu@lightwheel.ai) or [Yinghao](mailto:yinghao.shuai@lightwheel.ai).
+> [!TIP]
+> ***Welcome to the Lightwheel open-source community!***
+>
+> Join us, contribute, and help shape the future of AI and robotics. For questions or collaboration, contact [Zeyu](mailto:zeyu.hu@lightwheel.ai) or [Yinghao](mailto:yinghao.shuai@lightwheel.ai).
 
 ## Prerequisites & Installation 🛠️
 
@@ -59,7 +60,7 @@ pip install pynput pyserial deepdiff feetech-servo-sdk
 
 ## Asset Preparation 🏠
 
-We provide an example USD asset—a kitchen scene. Please download related scene [here](https://github.com/LightwheelAI/leisaac/releases/) and extract it into the `assets` directory. The directory structure should look like this:
+We provide an example USD asset—a kitchen scene. Please download related scene [here](https://github.com/LightwheelAI/leisaac/releases/tag/v0.1.0) and extract it into the `assets` directory. The directory structure should look like this:
 
 ```
 <assets>
@@ -76,8 +77,16 @@ We provide an example USD asset—a kitchen scene. Please download related scene
             └── Plate
 ```
 
-We also offers more high-quality assets—visit our website ([lightwheel.ai](https://lightwheel.ai/)) for more!
+### Scene Assets Download Table
 
+| Scene Name           | Description                        | Download Link                                                                             |
+|----------------------|------------------------------------|------------------------------------------------------------------------------------------|
+| Kitchen with Orange  | Example kitchen scene with oranges | [Download](https://github.com/LightwheelAI/leisaac/releases/tag/v0.1.0)                  |
+| Lightwheel Toyroom   | Modern room with many toys         | [Download](https://github.com/LightwheelAI/leisaac/releases/tag/v0.1.1)                  |
+
+
+> [!TIP] 
+> For more high-quality scene assets, please visit our [official website](https://lightwheel.ai/) or the [Releases page](https://github.com/LightwheelAI/leisaac/releases).
 
 ## Device Setup 🎮
 
@@ -127,13 +136,17 @@ If you encounter permission errors like `ConnectionError`, you may need to run:
 
 ```bash
 sudo chmod 666 /dev/ttyACM0
+
+# or just add your user in related groups
+sudo usermod -aG dialout $USER
 ```
 
 ## Data Convention & Conversion 📊
 
 Collected teleoperation data is stored in HDF5 format in the specified directory. We provide a script to convert HDF5 data to the LeRobot Dataset format. Only successful episode will be converted.
 
-**Note:** This script depends on the LeRobot runtime environment. We recommend using a separate Conda environment for LeRobot—see the official [LeRobot repo](https://github.com/huggingface/lerobot?tab=readme-ov-file#installation) for installation instructions.
+>[!NOTE] 
+> This script depends on the LeRobot runtime environment. We recommend using a separate Conda environment for LeRobot—see the official [LeRobot repo](https://github.com/huggingface/lerobot?tab=readme-ov-file#installation) for installation instructions.
 
 You can modify the parameters in the script and run the following command:
 
