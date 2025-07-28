@@ -36,7 +36,8 @@ import gymnasium as gym
 from isaaclab.envs import ManagerBasedRLEnv
 from isaaclab_tasks.utils import parse_env_cfg
 
-import leisaac
+import leisaac  # noqa: F401
+from leisaac.utils.env_utils import get_task_type
 
 
 class RateLimiter:
@@ -75,7 +76,7 @@ def parse_dataset(dataset_file: str, episode_index: int, task_type: str, device:
 
         seed = int(demo_group.attrs.get("seed", -1))
 
-        if task_type == "bi-arm":
+        if task_type == "bi-so101leader":
             left_joint_pos = torch.tensor(np.array(demo_group['obs/left_joint_pos']), device=device)
             right_joint_pos = torch.tensor(np.array(demo_group['obs/right_joint_pos']), device=device)
             states = torch.cat([left_joint_pos, right_joint_pos], dim=1)
@@ -100,7 +101,7 @@ def main():
     """Running lerobot teleoperation with leisaac manipulation environment."""
 
     env_cfg = parse_env_cfg(args_cli.task, device=args_cli.device, num_envs=args_cli.num_envs)
-    task_type = "bi-so101leader" if "BiArm" in args_cli.task else "so101leader"
+    task_type = get_task_type(args_cli.task)
     env_cfg.use_teleop_device(task_type)
 
     # modify configuration
