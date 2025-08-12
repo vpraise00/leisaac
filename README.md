@@ -40,7 +40,7 @@ sudo apt install cmake build-essential
 
 cd IsaacLab
 # fix isaaclab version for isaacsim4.5
-git checkout v2.1.0
+git checkout v2.1.1
 ./isaaclab.sh --install
 ```
 
@@ -166,8 +166,9 @@ python scripts/environments/teleoperation/replay.py \
     --num_envs=1 \
     --device=cpu \
     --enable_cameras \
+    --replay_mode=action \
     --dataset_file=./datasets/dataset.hdf5 \
-    --episode_index=0
+    --select_episodes 1 2
 ```
 
 <details>
@@ -181,9 +182,11 @@ python scripts/environments/teleoperation/replay.py \
 
 - `--enable_cameras`: Enable camera sensors to visualize when replay.
 
+- `--replay_mode`: Replay mode, we support replay `action` or `state`.
+
 - `--dataset_file`: Path to the recorded dataset, e.g., `./datasets/record_data.hdf5`.
 
-- `--episode_index`: Index of the episode to replay from the dataset, e.g., `0`.
+- `--select_episodes`: A list of episode indices to replayed, Keep empty to replay all episodes.
 
 </details>
 

@@ -12,7 +12,7 @@ from isaaclab.managers import ObservationGroupCfg as ObsGroup
 from isaaclab.managers import ObservationTermCfg as ObsTerm
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.managers import TerminationTermCfg as DoneTerm
-from isaaclab.sensors import TiledCameraCfg
+from isaaclab.sensors import TiledCameraCfg, FrameTransformerCfg
 from isaaclab.scene import InteractiveSceneCfg
 from isaaclab.utils import configclass
 
@@ -34,12 +34,18 @@ class LiftCubeSceneCfg(InteractiveSceneCfg):
 
     robot: ArticulationCfg = SO101_FOLLOWER_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
 
+    ee_frame: FrameTransformerCfg = FrameTransformerCfg(
+        prim_path="{ENV_REGEX_NS}/Robot/base",
+        debug_vis=False,
+        target_frames=[FrameTransformerCfg.FrameCfg(prim_path="{ENV_REGEX_NS}/Robot/gripper", name="gripper")]
+    )
+
     front: TiledCameraCfg = TiledCameraCfg(
         prim_path="{ENV_REGEX_NS}/Robot/base/front_camera",
-        offset=TiledCameraCfg.OffsetCfg(pos=(0.65, -0.3, 0.45), rot=(0.6432, 0.40646, 0.32495, 0.56169), convention="opengl"),  # wxyz
+        offset=TiledCameraCfg.OffsetCfg(pos=(-0.6, -0.75, 0.38), rot=(0.77337, 0.55078, -0.2374, -0.20537), convention="opengl"),  # wxyz
         data_types=["rgb"],
         spawn=sim_utils.PinholeCameraCfg(
-            focal_length=37.8,
+            focal_length=40.6,
             focus_distance=400.0,
             horizontal_aperture=38.11,
             clipping_range=(0.01, 50.0),
@@ -52,7 +58,7 @@ class LiftCubeSceneCfg(InteractiveSceneCfg):
 
     light = AssetBaseCfg(
         prim_path="{ENV_REGEX_NS}/Light",
-        spawn=sim_utils.DomeLightCfg(color=(0.75, 0.75, 0.75), intensity=3000.0),
+        spawn=sim_utils.DomeLightCfg(color=(0.75, 0.75, 0.75), intensity=1000.0),
     )
 
 
@@ -85,6 +91,7 @@ class ObservationsCfg:
         joint_vel_rel = ObsTerm(func=mdp.joint_vel_rel)
         actions = ObsTerm(func=mdp.last_action)
         front = ObsTerm(func=mdp.image, params={"sensor_cfg": SceneEntityCfg("front"), "data_type": "rgb", "normalize": False})
+        ee_frame_state = ObsTerm(func=mdp.ee_frame_state, params={"ee_frame_cfg": SceneEntityCfg("ee_frame"), "robot_cfg": SceneEntityCfg("robot")})
 
         def __post_init__(self):
             self.enable_corruption = True
@@ -141,10 +148,14 @@ class LiftCubeEnvCfg(ManagerBasedRLEnvCfg):
 
         self.scene.robot.init_state.pos = (0.35, -0.64, 0.01)
 
+        self.scene.ee_frame.visualizer_cfg.markers['frame'].scale = (0.05, 0.05, 0.05)
+
         parse_usd_and_create_subassets(TABLE_WITH_CUBE_USD_PATH, self)
 
         domain_randomization(self, random_options=[
-            randomize_object_uniform("cube", pose_range={"x": (-0.1, 0.1), "y": (-0.1, 0.1), "z": (0.0, 0.0)}),
+            randomize_object_uniform("cube", pose_range={
+                "x": (-0.075, 0.075), "y": (-0.075, 0.075), "z": (0.0, 0.0),
+                "yaw": (-30 * torch.pi / 180, 30 * torch.pi / 180)}),
             randomize_camera_uniform("front", pose_range={
                 "x": (-0.005, 0.005), "y": (-0.005, 0.005), "z": (-0.005, 0.005),
                 "roll": (-0.05 * torch.pi / 180, 0.05 * torch.pi / 180),
@@ -168,7 +179,7 @@ class LiftCubeDigitalTwinEnvCfg(LiftCubeEnvCfg, ManagerBasedRLDigitalTwinEnvCfg)
     rgb_overlay_mode: str = "background"
 
     rgb_overlay_paths: Dict[str, str] = {
-        "front": "greenscreen/background-lift-cube.jpg"
+        "front": "greenscreen/background-lift-cube.png"
     }
 
     render_objects: List[SceneEntityCfg] = [
