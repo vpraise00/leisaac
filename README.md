@@ -55,7 +55,7 @@ git checkout v2.1.1
 > | IsaacLab   | 2.2.0   |
 
 
-### 2. Clone This Repository
+### 2. Clone This Repository and Install
 
 Clone this repository and install it as dependency.
 
@@ -63,12 +63,6 @@ Clone this repository and install it as dependency.
 git clone https://github.com/LightwheelAI/leisaac.git
 cd leisaac
 pip install -e source/leisaac
-```
-
-### 3. Install Extra Dependencies
-
-```bash
-pip install pynput pyserial deepdiff feetech-servo-sdk
 ```
 
 ## Asset Preparation 🏠
@@ -242,7 +236,7 @@ python scripts/evaluation/policy_inference.py \
 - `--task`: Name of the task environment to run for inference (e.g., `LeIsaac-SO101-PickOrange-v0`).
 
 - `--policy_type`: Type of policy to use (default: `gr00tn1.5`).
-    - now we support `gr00tn1.5`.
+    - now we support `gr00tn1.5`, `lerobot-<model_type>`
 
 - `--policy_host`: Host address of the policy server (default: `localhost`).
 
@@ -265,11 +259,42 @@ You may also use additional arguments supported by IsaacLab's `AppLauncher` (see
 Depending on your use case, you may need to install additional dependencies to enable inference:
 
 ```shell
-pip install pyzmq
+pip install -e "source/leisaac[gr00t]"
+pip install -e "source/leisaac[lerobot-async]"
 ```
 
 > [!IMPORTANT]
 > For service-based policies, you must start the corresponding service before running inference. For example, with GR00T, you need to launch the GR00T N1.5 inference server first. You can refer to the [GR00T evaluation documentation](https://github.com/NVIDIA/Isaac-GR00T?tab=readme-ov-file#4-evaluation) for detailed instructions.
+
+Below are the currently supported policy inference methods:
+
+<details>
+<summary><strong>finetuned gr00t n1.5</strong></summary><p></p>
+
+For usage instructions, please refer to the examples provided above.
+
+</details>
+
+<details>
+<summary><strong>lerobot official policy</strong></summary><p></p>
+
+We utilize lerobot's async inference capabilities for policy execution. For detailed information, please refer to the [official documentation](https://huggingface.co/docs/lerobot/async). Prior to execution, ensure that the policy server is running.
+
+```shell
+python scripts/evaluation/policy_inference.py \
+    --task=LeIsaac-SO101-PickOrange-v0 \
+    --policy_type=lerobot-smolvla \
+    --policy_host=localhost \
+    --policy_port=8080 \
+    --policy_timeout_ms=5000 \
+    --policy_language_instruction='Pick the orange to the plate' \
+    --policy_checkpoint_path=outputs/smolvla/leisaac-pick-orange/checkpoints/last/pretrained_model \
+    --policy_action_horizon=50 \
+    --device=cuda \
+    --enable_cameras
+```
+
+</details>
 
 
 ## Extra Feature ✨
