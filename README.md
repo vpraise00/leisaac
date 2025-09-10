@@ -91,6 +91,7 @@ We provide an example USD asset—a kitchen scene. Please download related scene
 | Kitchen with Orange  | Example kitchen scene with oranges | [Download](https://github.com/LightwheelAI/leisaac/releases/tag/v0.1.0)                  |
 | Lightwheel Toyroom   | Modern room with many toys         | [Download](https://github.com/LightwheelAI/leisaac/releases/tag/v0.1.1)                  |
 | Table with Cube      | Simple table with one cube         | [Download](https://github.com/LightwheelAI/leisaac/releases/tag/v0.1.2)                  |
+| Lightwheel Bedroom   | Realistic bedroom scene with cloth | [Download](https://github.com/LightwheelAI/leisaac/releases/tag/v0.2.0)                  |
 
 
 > [!TIP] 
@@ -140,6 +141,8 @@ python scripts/environments/teleoperation/teleop_se3_agent.py \
 - `--record`: Enable data recording; saves teleoperation data to an HDF5 file.
 
 - `--dataset_file`: Path to save the recorded dataset, e.g., `./datasets/record_data.hdf5`.
+
+- `--quality`: Whether to enable quality render mode.
 
 </details>
 
@@ -322,7 +325,7 @@ For usage examples, please refer to the sample task: [LiftCubeDigitalTwinEnvCfg]
 <details>
 <summary><strong>MimicGen Env: Generate Data From Demonstrations</strong></summary><p></p>
 
-We have integrated [IsaacLab MimicGen](https://isaac-sim.github.io/IsaacLab/main/source/overview/teleop_imitation.html), a powerful feature that automatically generates additional demonstrations from expert demonstrations.
+We have integrated [IsaacLab MimicGen](https://isaac-sim.github.io/IsaacLab/main/source/overview/imitation-learning/teleop_imitation.html), a powerful feature that automatically generates additional demonstrations from expert demonstrations.
 
 To use this functionality, you first need to record some demonstrations. Recording scripts can be referenced from the instructions above. (Below we use the MimicGen for the `LeIsaac-SO101-LiftCube-v0` task as an example).
 

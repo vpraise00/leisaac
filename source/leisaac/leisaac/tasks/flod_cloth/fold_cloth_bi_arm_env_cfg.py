@@ -18,16 +18,16 @@ from isaaclab.scene import InteractiveSceneCfg
 from isaaclab.utils import configclass
 
 from leisaac.assets.robots.lerobot import SO101_FOLLOWER_CFG
-from leisaac.assets.scenes.kitchen import KITCHEN_WITH_HAMBURGER_CFG, KITCHEN_WITH_HAMBURGER_USD_PATH
+from leisaac.assets.scenes.bedroom import LIGHTWHEEL_BEDROOM_CFG, LIGHTWHEEL_BEDROOM_USD_PATH
 from leisaac.devices.action_process import init_action_cfg, preprocess_device_action
 from leisaac.utils.general_assets import parse_usd_and_create_subassets
 
 
 @configclass
-class AssembleHamburgerBiArmSceneCfg(InteractiveSceneCfg):
-    """Scene configuration for the assemble hamburger task using two arms."""
+class FoldClothBiArmSceneCfg(InteractiveSceneCfg):
+    """Scene configuration for the fold cloth task using two arms."""
 
-    scene: AssetBaseCfg = KITCHEN_WITH_HAMBURGER_CFG.replace(prim_path="{ENV_REGEX_NS}/Scene")
+    scene: AssetBaseCfg = LIGHTWHEEL_BEDROOM_CFG.replace(prim_path="{ENV_REGEX_NS}/Scene")
 
     left_arm: ArticulationCfg = SO101_FOLLOWER_CFG.replace(prim_path="{ENV_REGEX_NS}/Left_Robot")
 
@@ -147,10 +147,10 @@ class TerminationsCfg:
 
 
 @configclass
-class AssembleHamburgerBiArmEnvCfg(ManagerBasedRLEnvCfg):
-    """Configuration for the assemble hamburger environment."""
+class FoldClothBiArmEnvCfg(ManagerBasedRLEnvCfg):
+    """Configuration for the fold cloth environment."""
 
-    scene: AssembleHamburgerBiArmSceneCfg = AssembleHamburgerBiArmSceneCfg(env_spacing=8.0)
+    scene: FoldClothBiArmSceneCfg = FoldClothBiArmSceneCfg(env_spacing=8.0)
 
     observations: ObservationsCfg = ObservationsCfg()
     actions: ActionsCfg = ActionsCfg()
@@ -166,17 +166,17 @@ class AssembleHamburgerBiArmEnvCfg(ManagerBasedRLEnvCfg):
 
         self.decimation = 1
         self.episode_length_s = 8.0
-        self.viewer.eye = (2.5, -1.0, 1.3)
-        self.viewer.lookat = (3.6, -0.4, 1.0)
+        self.viewer.eye = (-0.9, 7.7, 4.3)
+        self.viewer.lookat = (-0.9, 8.8, 3.25)
 
         self.sim.physx.bounce_threshold_velocity = 0.01
         self.sim.physx.friction_correlation_distance = 0.00625
         self.sim.render.enable_translucency = True
 
-        self.scene.left_arm.init_state.pos = (3.4, -0.65, 0.89)
-        self.scene.right_arm.init_state.pos = (3.8, -0.65, 0.89)
+        self.scene.left_arm.init_state.pos = (-1.0, 8.35, 3.25)
+        self.scene.right_arm.init_state.pos = (-0.72, 8.35, 3.25)
 
-        parse_usd_and_create_subassets(KITCHEN_WITH_HAMBURGER_USD_PATH, self)
+        parse_usd_and_create_subassets(LIGHTWHEEL_BEDROOM_USD_PATH, self)
 
     def use_teleop_device(self, teleop_device) -> None:
         self.actions = init_action_cfg(self.actions, device=teleop_device)
