@@ -42,7 +42,7 @@ class CleanToyTableBiArmSceneCfg(InteractiveSceneCfg):
             focus_distance=400.0,
             horizontal_aperture=36.83,  # For a 75° FOV (assuming square image)
             clipping_range=(0.01, 50.0),
-            lock_camera=True
+            lock_camera=False
         ),
         width=640,
         height=480,
@@ -58,7 +58,7 @@ class CleanToyTableBiArmSceneCfg(InteractiveSceneCfg):
             focus_distance=400.0,
             horizontal_aperture=36.83,  # For a 75° FOV (assuming square image)
             clipping_range=(0.01, 50.0),
-            lock_camera=True
+            lock_camera=False
         ),
         width=640,
         height=480,

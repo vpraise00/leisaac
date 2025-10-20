@@ -15,3 +15,19 @@ TABLE_WITH_CUBE_CFG = AssetBaseCfg(
         usd_path=TABLE_WITH_CUBE_USD_PATH,
     )
 )
+
+STACK_THE_CUBE_USD_PATH = str(SCENES_ROOT / "stack_the_cube" / "custom.usdz")
+
+STACK_THE_CUBE_CFG = AssetBaseCfg(
+    spawn=sim_utils.UsdFileCfg(
+        usd_path=STACK_THE_CUBE_USD_PATH,
+    )
+)
+
+ASSEMBLY_USD_PATH = str(SCENES_ROOT / "assembly" / "nene.usd")
+
+ASSEMBLY_CFG = AssetBaseCfg(
+    spawn=sim_utils.UsdFileCfg(
+        usd_path=ASSEMBLY_USD_PATH,
+    )
+)

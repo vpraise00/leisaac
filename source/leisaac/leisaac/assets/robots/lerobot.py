@@ -22,6 +22,7 @@ SO101_FOLLOWER_CFG = ArticulationCfg(
             solver_velocity_iteration_count=4,
             fix_root_link=True,
         ),
+        activate_contact_sensors=True,
     ),
     init_state=ArticulationCfg.InitialStateCfg(
         pos=(2.2, -0.61, 0.89),

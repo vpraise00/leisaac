@@ -175,6 +175,11 @@ LEROBOT_JOINT_POS_LIMIT_RANGE = [
     (0, 100),
 ]
 
+SINGLE_ARM_FEATURES_NO_IMAGES = {
+    "action": SINGLE_ARM_FEATURES["action"],
+    "observation.state": SINGLE_ARM_FEATURES["observation.state"],
+}
+
 
 def preprocess_joint_pos(joint_pos: np.ndarray) -> np.ndarray:
     joint_pos = joint_pos / np.pi * 180
@@ -255,31 +260,56 @@ def process_bi_arm_data(dataset: LeRobotDataset, task: str, demo_group: h5py.Gro
     return True
 
 
-def convert_isaaclab_to_lerobot():
-    """NOTE: Modify the following parameters to fit your own dataset"""
-    repo_id = 'EverNorif/so101_test_orange_pick'
-    robot_type = 'so101_follower'  # so101_follower, bi_so101_follower
-    fps = 30
-    hdf5_root = './datasets'
-    hdf5_files = [os.path.join(hdf5_root, 'dataset.hdf5')]
-    task = 'Grab orange and place into plate'
-    push_to_hub = False
+def convert_isaaclab_to_lerobot(
+    repo_id: str,
+    robot_type: str,
+    fps: int,
+    hdf5_files: list,
+    task: str,
+    push_to_hub: bool = False,
+    allow_missing_images: bool = False,    
+) -> None:
+    
+    """
+    NOTE: Modify the following parameters to fit your own dataset
+    """
+    # repo_id = 'EverNorif/so101_test_orange_pick'
+    # robot_type = 'so101_follower'  # so101_follower, bi_so101_follower
+    # fps = 30
+    # hdf5_root = './datasets'
+    # hdf5_files = [os.path.join(hdf5_root, 'dataset.hdf5')]
+    # task = 'Grab orange and place into plate'
+    # push_to_hub = False
 
     """parameters check"""
     assert robot_type in ['so101_follower', 'bi_so101_follower'], 'robot_type must be so101_follower or bi_so101_follower'
+    if not hdf5_files:
+        print('[ERROR] No hdf5 files provided.')
+        return
+
+    print(f'[INFO] repo_id={repo_id} robot_type={robot_type} fps={fps} task="{task}"')
+    print(f'[INFO] Files: {len(hdf5_files)} => {hdf5_files}')
 
     """convert to LeRobotDataset"""
-    now_episode_index = 0
+    # now_episode_index = 0
+    features = SINGLE_ARM_FEATURES if robot_type == 'so101_follower' else BI_ARM_FEATURES
     dataset = LeRobotDataset.create(
         repo_id=repo_id,
         fps=fps,
         robot_type=robot_type,
-        features=SINGLE_ARM_FEATURES if robot_type == 'so101_follower' else BI_ARM_FEATURES,
+        features=features,
     )
 
+    saved_episodes = 0
     for hdf5_id, hdf5_file in enumerate(hdf5_files):
+        if not os.path.isfile(hdf5_file):
+            print(f'[WARNING] hdf5 file not found: {hdf5_file}, skip it')
+            continue
         print(f'[{hdf5_id+1}/{len(hdf5_files)}] Processing hdf5 file: {hdf5_file}')
         with h5py.File(hdf5_file, 'r') as f:
+            if 'data' not in f:
+                print(f'[WARNING] No data group found in {hdf5_file}, skip it')
+                continue
             demo_names = list(f['data'].keys())
             print(f'Found {len(demo_names)} demos: {demo_names}')
 
@@ -293,15 +323,82 @@ def convert_isaaclab_to_lerobot():
                     valid = process_single_arm_data(dataset, task, demo_group, demo_name)
                 elif robot_type == 'bi_so101_follower':
                     valid = process_bi_arm_data(dataset, task, demo_group, demo_name)
-
+                else:
+                    raise ValueError(f'Unknown robot_type: {robot_type}')
                 if valid:
-                    now_episode_index += 1
+                    saved_episodes += 1
                     dataset.save_episode()
-                    print(f'Saving episode {now_episode_index} successfully')
+                    print(f'Saving episode {saved_episodes} successfully')
 
     if push_to_hub:
         dataset.push_to_hub()
 
 
 if __name__ == '__main__':
-    convert_isaaclab_to_lerobot()
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description='Convert IsaacLab HDF5 dataset to LeRobotDataset and optionally push to the hub'
+        )
+    parser.add_argument(
+        '--dataset_path_or_repo', 
+        type=str, 
+        required=True, 
+        help='Path to save the dataset or the repo id to push to the hub'
+        )
+    parser.add_argument(
+        '--robot_type', 
+        type=str, 
+        default='so101_follower', 
+        choices=['so101_follower', 'bi_so101_follower'], 
+        help='Robot type: so101_follower or bi_so101_follower'
+    )
+    parser.add_argument(
+        '--fps', 
+        type=int, 
+        default=30, 
+        help='Frames per second'
+    )
+    parser.add_argument(
+        '--hdf5_files', 
+        type=str, 
+        nargs='+', 
+        required=True, 
+        help='List of hdf5 files to convert'
+    )
+    parser.add_argument(
+        '--task', 
+        type=str, 
+        required=True, 
+        help='Task description'
+    )
+    parser.add_argument(
+        '--push_to_hub', 
+        action='store_true', 
+        help='Whether to push the dataset to the hub'
+    )
+    args = parser.parse_args()
+
+    # Simple args print
+    print('[ARGS]')
+    print(f'  repo_id={args.dataset_path_or_repo}')
+    print(f'  robot_type={args.robot_type}')
+    print(f'  fps={args.fps}')
+    print(f'  task="{args.task}"')
+    print(f'  files({len(args.hdf5_files)}): {args.hdf5_files}')
+    print(f'  push_to_hub={args.push_to_hub}')
+
+    # Check files exist
+    missing = [f for f in args.hdf5_files if not os.path.isfile(f)]
+    if missing:
+        print(f'[ERROR] Missing files: {missing}')
+        exit(1)
+
+    convert_isaaclab_to_lerobot(
+        repo_id=args.dataset_path_or_repo,
+        robot_type=args.robot_type,
+        fps=args.fps,
+        hdf5_files=args.hdf5_files,
+        task=args.task,
+        push_to_hub=args.push_to_hub,
+    )
