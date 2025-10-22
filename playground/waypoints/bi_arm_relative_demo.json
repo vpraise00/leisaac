@@ -1,0 +1,62 @@
+[
+  {
+    "relative": false,
+    "left": {
+      "position": [0.22, -0.45, 0.22],
+      "gripper": 0.0
+    },
+    "right": {
+      "position": [0.55, -0.45, 0.22],
+      "gripper": 0.0
+    },
+    "hold_steps": 45
+  },
+  {
+    "relative": false,
+    "left": {
+      "position": [0.22, -0.45, 0.16],
+      "gripper": 0.6
+    },
+    "right": {
+      "position": [0.55, -0.45, 0.16],
+      "gripper": 0.6
+    },
+    "hold_steps": 30
+  },
+  {
+    "relative": false,
+    "left": {
+      "position": [0.22, -0.45, 0.11],
+      "gripper": 0.6
+    },
+    "right": {
+      "position": [0.55, -0.45, 0.11],
+      "gripper": 0.6
+    },
+    "hold_steps": 60
+  },
+  {
+    "relative": false,
+    "left": {
+      "position": [0.22, -0.45, 0.11],
+      "gripper": 0.0
+    },
+    "right": {
+      "position": [0.55, -0.45, 0.11],
+      "gripper": 0.0
+    },
+    "hold_steps": 30
+  },
+  {
+    "relative": false,
+    "left": {
+      "position": [0.22, -0.45, 0.16],
+      "gripper": 0.0
+    },
+    "right": {
+      "position": [0.55, -0.45, 0.16],
+      "gripper": 0.0
+    },
+    "hold_steps": 60
+  }
+]
