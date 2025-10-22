@@ -29,6 +29,8 @@ parser.add_argument("--orientation_tol", type=float, default=0.02, help="Orienta
 parser.add_argument("--pose_interp_gain", type=float, default=0.3, help="Pose interpolation gain.")
 parser.add_argument("--interp_gain", type=float, default=0.3, help="Joint interpolation gain.")
 parser.add_argument("--command_type", type=str, default="position", choices=["position", "pose"], help="IK command type.")
+parser.add_argument("--force_wrist_down", action="store_true", default=True, help="Force wrist_flex joint to point downward.")
+parser.add_argument("--wrist_flex_angle", type=float, default=1.57, help="Target angle for wrist_flex joint in radians (default: 1.57 = 90 deg).")
 
 # Recording parameters
 parser.add_argument("--record", action="store_true", default=False, help="Enable data recording.")
@@ -137,6 +139,8 @@ def main():
         orientation_tol=args_cli.orientation_tol,
         pose_interp_gain=args_cli.pose_interp_gain,
         interp_gain=args_cli.interp_gain,
+        force_wrist_down=args_cli.force_wrist_down,
+        wrist_flex_angle=args_cli.wrist_flex_angle,
     )
 
     print("[DataCollection] Controller initialized.")

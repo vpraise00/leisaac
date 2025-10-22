@@ -30,6 +30,8 @@ class WaypointCommand:
     left_gripper: float
     right_gripper: float
     hold_steps: int
+    left_wrist_flex: Optional[float] = None  # Optional wrist_flex angle in radians
+    right_wrist_flex: Optional[float] = None  # Optional wrist_flex angle in radians
 
 
 class BiArmWaypointController:
@@ -44,6 +46,8 @@ class BiArmWaypointController:
         orientation_tol: float = 0.02,
         pose_interp_gain: float = 1.0,
         interp_gain: float = 1.0,
+        force_wrist_down: bool = True,
+        wrist_flex_angle: float = 1.57,  # ~90 degrees in radians
     ):
         """
         Initialize waypoint controller.
@@ -56,12 +60,16 @@ class BiArmWaypointController:
             orientation_tol: Orientation convergence tolerance (1 - |dot|)
             pose_interp_gain: Interpolation gain for pose (0-1)
             interp_gain: Interpolation gain for joint targets (0-1)
+            force_wrist_down: Force wrist_flex joint to point downward
+            wrist_flex_angle: Target angle for wrist_flex joint in radians (default: 1.57 = 90 deg)
         """
         self.env = env
         self.position_tol = position_tol
         self.orientation_tol = orientation_tol
         self.pose_interp_gain = pose_interp_gain
         self.interp_gain = interp_gain
+        self.force_wrist_down = force_wrist_down
+        self.wrist_flex_angle = wrist_flex_angle
 
         # Setup arms
         self.left_arm = env.scene["left_arm"]
@@ -245,6 +253,20 @@ class BiArmWaypointController:
             joint_targets_left = joint_pos_left + self.interp_gain * (joint_targets_left - joint_pos_left)
             joint_targets_right = joint_pos_right + self.interp_gain * (joint_targets_right - joint_pos_right)
 
+        # Apply wrist_flex from waypoint or global setting
+        wrist_flex_idx = 3  # wrist_flex is index 3 in joint array
+
+        # Use per-waypoint wrist_flex if specified, otherwise use global setting if enabled
+        if self.current_waypoint.left_wrist_flex is not None:
+            joint_targets_left[:, wrist_flex_idx] = self.current_waypoint.left_wrist_flex
+        elif self.force_wrist_down:
+            joint_targets_left[:, wrist_flex_idx] = self.wrist_flex_angle
+
+        if self.current_waypoint.right_wrist_flex is not None:
+            joint_targets_right[:, wrist_flex_idx] = self.current_waypoint.right_wrist_flex
+        elif self.force_wrist_down:
+            joint_targets_right[:, wrist_flex_idx] = self.wrist_flex_angle
+
         # Compose action
         action = self._compose_bi_arm_action(
             joint_targets_left,
@@ -325,6 +347,8 @@ def load_waypoints_from_json(filepath: str, device: str) -> list[WaypointCommand
             left_gripper=wp["left"].get("gripper", 0.0),
             right_gripper=wp["right"].get("gripper", 0.0),
             hold_steps=wp.get("hold_steps", 30),
+            left_wrist_flex=wp["left"].get("wrist_flex", None),
+            right_wrist_flex=wp["right"].get("wrist_flex", None),
         ))
 
     return waypoints
