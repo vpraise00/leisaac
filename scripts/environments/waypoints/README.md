@@ -37,12 +37,14 @@ The waypoint system allows you to:
     "left": {
       "position": [x, y, z],
       "orientation": [w, x, y, z],  // Optional: quaternion (world frame)
-      "gripper": 0.0                 // 0.0 = open, 1.0 = closed
+      "gripper": 0.0,                // 0.0 = open, 1.0 = closed
+      "wrist_flex": 1.57             // Optional: wrist_flex angle in radians
     },
     "right": {
       "position": [x, y, z],
       "orientation": [w, x, y, z],  // Optional
-      "gripper": 0.0
+      "gripper": 0.0,
+      "wrist_flex": 1.57             // Optional
     },
     "hold_steps": 45                 // Steps to hold at this waypoint
   },
@@ -54,6 +56,7 @@ The waypoint system allows you to:
 - `position`: [x, y, z] in meters (world frame)
 - `orientation`: [w, x, y, z] quaternion (world frame) - only used in pose mode
 - `gripper`: 0.0 (open) to 1.0 (closed)
+- `wrist_flex`: Joint angle in radians (optional) - overrides global `--wrist_flex_angle` if specified
 - `hold_steps`: Number of simulation steps to hold at waypoint before moving to next
 - If `orientation` is omitted, controller uses position-only mode (robot chooses natural orientation)
 
@@ -133,6 +136,8 @@ playground\running_scripts\collect_waypoint_data.bat
 - `--pose_interp_gain`: Interpolation gain for pose commands (0-1, default: 0.3)
 - `--interp_gain`: Interpolation gain for joint targets (0-1, default: 0.3)
 - `--episode_end_delay`: Delay in seconds after last waypoint (default: 2.0)
+- `--force_wrist_down`: Force wrist_flex joint to point downward (default: enabled)
+- `--wrist_flex_angle`: Target angle for wrist_flex joint in radians (default: 1.57 ≈ 90°)
 
 ### Recording (only with `--record`)
 - `--record`: Enable data recording (flag)

@@ -37,12 +37,14 @@ Waypoint 시스템의 주요 기능:
     "left": {
       "position": [x, y, z],
       "orientation": [w, x, y, z],  // 선택사항: quaternion (월드 프레임)
-      "gripper": 0.0                 // 0.0 = 열림, 1.0 = 닫힘
+      "gripper": 0.0,                // 0.0 = 열림, 1.0 = 닫힘
+      "wrist_flex": 1.57             // 선택사항: wrist_flex 각도 (라디안)
     },
     "right": {
       "position": [x, y, z],
       "orientation": [w, x, y, z],  // 선택사항
-      "gripper": 0.0
+      "gripper": 0.0,
+      "wrist_flex": 1.57             // 선택사항
     },
     "hold_steps": 45                 // 이 waypoint에서 유지할 스텝 수
   },
@@ -54,6 +56,7 @@ Waypoint 시스템의 주요 기능:
 - `position`: [x, y, z] 미터 단위 (월드 프레임)
 - `orientation`: [w, x, y, z] quaternion (월드 프레임) - pose 모드에서만 사용
 - `gripper`: 0.0 (열림) ~ 1.0 (닫힘)
+- `wrist_flex`: 조인트 각도 라디안 단위 (선택사항) - 지정 시 전역 `--wrist_flex_angle` 값을 오버라이드
 - `hold_steps`: 다음 waypoint로 이동하기 전 현재 지점에서 유지할 시뮬레이션 스텝 수
 - `orientation`이 생략되면 position-only 모드 사용 (로봇이 자연스러운 방향 선택)
 
@@ -133,6 +136,8 @@ playground\running_scripts\collect_waypoint_data.bat
 - `--pose_interp_gain`: Pose 명령 보간 게인 (0-1, 기본값: 0.3)
 - `--interp_gain`: 조인트 타겟 보간 게인 (0-1, 기본값: 0.3)
 - `--episode_end_delay`: 마지막 waypoint 후 지연 시간(초) (기본값: 2.0)
+- `--force_wrist_down`: wrist_flex 조인트를 아래 방향으로 강제 설정 (기본값: 활성화)
+- `--wrist_flex_angle`: wrist_flex 조인트 목표 각도 라디안 단위 (기본값: 1.57 ≈ 90°)
 
 ### 기록 (`--record` 사용 시에만)
 - `--record`: 데이터 기록 활성화 (플래그)
