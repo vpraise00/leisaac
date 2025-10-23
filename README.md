@@ -304,6 +304,31 @@ python scripts/evaluation/policy_inference.py \
 </details>
 
 
+## Waypoint-Based Data Collection 🎯
+
+For automated demonstration collection, we provide a waypoint-based control system. This allows you to define robot trajectories as sequences of target positions and automatically execute them with recording capabilities.
+
+**Key Features:**
+- Define trajectories as JSON waypoint sequences
+- Multiple controller backends (DifferentialIK, OperationalSpaceController)
+- Automatic data recording in HDF5 format
+- Direct conversion to LeRobot format and HuggingFace upload
+
+**Quick Example:**
+```bash
+# Collect demonstrations using waypoints
+python scripts/environments/waypoints/bi_arm_waypoint_data_collection.py \
+    --task=LeIsaac-SO101-CleanToyTable-BiArm-v0 \
+    --waypoint_file="playground/waypoints/bi_arm_demo.json" \
+    --controller_type=dik \
+    --record \
+    --dataset_file="datasets/demos.hdf5" \
+    --num_demos=50 \
+    --enable_cameras
+```
+
+📖 **[Full Documentation](scripts/environments/waypoints/README.md)** | **[한국어 문서](scripts/environments/waypoints/README_KOR.md)**
+
 ## Extra Feature ✨
 
 We also provide some additional features. You can refer to the following instructions to try them out.

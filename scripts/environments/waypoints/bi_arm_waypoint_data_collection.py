@@ -20,6 +20,7 @@ parser.add_argument("--task", type=str, required=True, help="Name of the task.")
 parser.add_argument("--seed", type=int, default=None, help="Seed for the environment.")
 
 # Waypoint parameters
+parser.add_argument("--controller_type", type=str, default="dik", choices=["dik", "osc"], help="Controller type: 'dik' (DifferentialIK) or 'osc' (OperationalSpaceController).")
 parser.add_argument("--waypoint_file", type=str, required=True, help="Path to JSON file with waypoints.")
 parser.add_argument("--step_hz", type=int, default=30, help="Environment stepping rate in Hz.")
 parser.add_argument("--hold_steps", type=int, default=None, help="Override hold_steps for all waypoints.")
@@ -27,8 +28,10 @@ parser.add_argument("--episode_end_delay", type=float, default=2.0, help="Delay 
 parser.add_argument("--position_tol", type=float, default=0.05, help="Position convergence tolerance.")
 parser.add_argument("--orientation_tol", type=float, default=0.02, help="Orientation convergence tolerance.")
 parser.add_argument("--pose_interp_gain", type=float, default=0.3, help="Pose interpolation gain.")
-parser.add_argument("--interp_gain", type=float, default=0.3, help="Joint interpolation gain.")
-parser.add_argument("--command_type", type=str, default="position", choices=["position", "pose"], help="IK command type.")
+parser.add_argument("--interp_gain", type=float, default=0.3, help="Joint interpolation gain (only for dik).")
+parser.add_argument("--command_type", type=str, default="position", choices=["position", "pose"], help="IK command type (only for dik).")
+parser.add_argument("--motion_stiffness", type=float, default=150.0, help="Motion stiffness for OSC (only for osc).")
+parser.add_argument("--motion_damping_ratio", type=float, default=1.0, help="Motion damping ratio for OSC (only for osc).")
 parser.add_argument("--force_wrist_down", action="store_true", default=True, help="Force wrist_flex joint to point downward.")
 parser.add_argument("--wrist_flex_angle", type=float, default=1.57, help="Target angle for wrist_flex joint in radians (default: 1.57 = 90 deg).")
 
@@ -57,7 +60,8 @@ from isaaclab_tasks.utils import parse_env_cfg
 from isaaclab.managers import TerminationTermCfg
 
 from leisaac.enhance.managers import StreamingRecorderManager
-from waypoint_controller import BiArmWaypointController, load_waypoints_from_json
+from waypoint_controller_dik import BiArmWaypointController, load_waypoints_from_json
+from waypoint_controller_osc import BiArmWaypointControllerOSC, load_waypoints_from_json as load_waypoints_from_json_osc
 
 
 class RateLimiter:
@@ -128,20 +132,40 @@ def main():
         print("[WaypointRunner] Environment created (playback only, no recording).")
 
     # Load waypoints
-    waypoints = load_waypoints_from_json(args_cli.waypoint_file, env.device)
+    if args_cli.controller_type == "dik":
+        waypoints = load_waypoints_from_json(args_cli.waypoint_file, env.device)
+    else:  # osc
+        waypoints = load_waypoints_from_json_osc(args_cli.waypoint_file, env.device)
     print(f"[DataCollection] Loaded {len(waypoints)} waypoints.")
 
-    # Create waypoint controller
-    controller = BiArmWaypointController(
-        env=env,
-        command_type=args_cli.command_type,
-        position_tol=args_cli.position_tol,
-        orientation_tol=args_cli.orientation_tol,
-        pose_interp_gain=args_cli.pose_interp_gain,
-        interp_gain=args_cli.interp_gain,
-        force_wrist_down=args_cli.force_wrist_down,
-        wrist_flex_angle=args_cli.wrist_flex_angle,
-    )
+    # Create waypoint controller based on type
+    if args_cli.controller_type == "dik":
+        print("[DataCollection] Using DifferentialIK controller...")
+        controller = BiArmWaypointController(
+            env=env,
+            command_type=args_cli.command_type,
+            position_tol=args_cli.position_tol,
+            orientation_tol=args_cli.orientation_tol,
+            pose_interp_gain=args_cli.pose_interp_gain,
+            interp_gain=args_cli.interp_gain,
+            force_wrist_down=args_cli.force_wrist_down,
+            wrist_flex_angle=args_cli.wrist_flex_angle,
+        )
+    else:  # osc
+        print("[DataCollection] Using OperationalSpaceController...")
+        # Convert command_type for OSC
+        osc_command_type = "pose_abs" if args_cli.command_type == "pose" else "pose_abs"
+        controller = BiArmWaypointControllerOSC(
+            env=env,
+            command_type=osc_command_type,
+            position_tol=args_cli.position_tol,
+            orientation_tol=args_cli.orientation_tol,
+            pose_interp_gain=args_cli.pose_interp_gain,
+            motion_stiffness=args_cli.motion_stiffness,
+            motion_damping_ratio=args_cli.motion_damping_ratio,
+            force_wrist_down=args_cli.force_wrist_down,
+            wrist_flex_angle=args_cli.wrist_flex_angle,
+        )
 
     print("[DataCollection] Controller initialized.")
     print("[DataCollection] Episodes will run automatically.\n")

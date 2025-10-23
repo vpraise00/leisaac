@@ -1,206 +1,42 @@
-# Bi-Arm Waypoint Control
+# Waypoint-Based Data Collection
 
-This directory contains tools for executing pre-defined waypoint sequences on bi-arm robots, with optional data recording for demonstration collection.
+This directory contains tools for automated demonstration data collection using waypoint-based control for bi-arm SO-101 robot manipulation tasks in IsaacLab.
 
 ## Overview
 
 The waypoint system allows you to:
-- Define a sequence of target poses (position + optional orientation) for both arms
-- Execute waypoints automatically using differential IK control
-- Record demonstrations in HDF5 format for training
-- Run waypoints in playback mode for testing/debugging
+1. Define robot trajectories as sequences of target end-effector positions
+2. Automatically execute waypoints with different controller backends
+3. Record demonstration data in HDF5 format with camera observations
+4. Convert datasets to LeRobot format and upload to HuggingFace
 
-## Architecture
+## System Architecture
 
-### Core Components
+### Controller Modules
 
-1. **`waypoint_controller.py`** - Reusable waypoint execution module
-   - `BiArmWaypointController`: Main controller class
-   - `load_waypoints_from_json()`: Waypoint file parser
-   - Handles IK computation, convergence checking, and action generation
+- **`waypoint_controller_dik.py`**: DifferentialIK-based controller (default)
+  - Fast and simple Jacobian-based inverse kinematics
+  - Suitable for most manipulation tasks
+  - Supports position-only or full pose control
 
-2. **`bi_arm_waypoint_data_collection.py`** - Main execution script
-   - Supports two modes: playback (no recording) and data collection (with recording)
-   - Automatic episode management
-   - Configurable via command-line arguments
+- **`waypoint_controller_osc.py`**: OperationalSpaceController-based controller (experimental)
+  - Impedance control with smoother motion generation
+  - May provide better stability for complex interactions
+  - Currently under development
 
-3. **Waypoint JSON files** - Define waypoint sequences
-   - Location: `playground/waypoints/*.json`
-   - Format: Array of waypoint objects
+### Data Collection Script
 
-## Waypoint JSON Format
+- **`bi_arm_waypoint_data_collection.py`**: Main execution script
+  - Loads waypoints from JSON files
+  - Executes trajectories with selected controller
+  - Records observations, actions, and camera data
+  - Supports automatic episode management and success labeling
 
-```json
-[
-  {
-    "relative": false,
-    "left": {
-      "position": [x, y, z],
-      "orientation": [w, x, y, z],  // Optional: quaternion (world frame)
-      "gripper": 0.0,                // 0.0 = open, 1.0 = closed
-      "wrist_flex": 1.57             // Optional: wrist_flex angle in radians
-    },
-    "right": {
-      "position": [x, y, z],
-      "orientation": [w, x, y, z],  // Optional
-      "gripper": 0.0,
-      "wrist_flex": 1.57             // Optional
-    },
-    "hold_steps": 45                 // Steps to hold at this waypoint
-  },
-  // ... more waypoints
-]
-```
+## Quick Start
 
-**Notes:**
-- `position`: [x, y, z] in meters (world frame)
-- `orientation`: [w, x, y, z] quaternion (world frame) - only used in pose mode
-- `gripper`: 0.0 (open) to 1.0 (closed)
-- `wrist_flex`: Joint angle in radians (optional) - overrides global `--wrist_flex_angle` if specified
-- `hold_steps`: Number of simulation steps to hold at waypoint before moving to next
-- If `orientation` is omitted, controller uses position-only mode (robot chooses natural orientation)
+### 1. Define Waypoints
 
-## Usage
-
-### Mode 1: Playback Only (No Recording)
-
-Run waypoints in a loop without saving data. Useful for testing and visualization.
-
-**Command:**
-```bash
-python scripts/environments/waypoints/bi_arm_waypoint_data_collection.py \
-    --task=LeIsaac-SO101-CleanToyTable-BiArm-v0 \
-    --waypoint_file="playground/waypoints/bi_arm_relative_demo.json" \
-    --step_hz=30 \
-    --hold_steps=10 \
-    --position_tol=0.05 \
-    --command_type=position \
-    --enable_cameras
-```
-
-**Or use batch file:**
-```bash
-playground\running_scripts\run_waypoints_playback.bat
-```
-
-**Behavior:**
-- Executes all waypoints in sequence
-- Waits 2 seconds after last waypoint
-- Resets and loops infinitely
-- No data is recorded
-
-### Mode 2: Data Collection (Recording)
-
-Record demonstrations by running waypoints multiple times.
-
-**Command:**
-```bash
-python scripts/environments/waypoints/bi_arm_waypoint_data_collection.py \
-    --task=LeIsaac-SO101-CleanToyTable-BiArm-v0 \
-    --waypoint_file="playground/waypoints/bi_arm_relative_demo.json" \
-    --record \
-    --dataset_file="datasets/waypoint_demos.hdf5" \
-    --num_demos=10 \
-    --step_hz=30 \
-    --hold_steps=10 \
-    --position_tol=0.05 \
-    --command_type=position \
-    --enable_cameras
-```
-
-**Or use batch file:**
-```bash
-playground\running_scripts\collect_waypoint_data.bat
-```
-
-**Behavior:**
-- Executes waypoint sequence
-- Waits 2 seconds after last waypoint
-- Marks episode as successful and saves to HDF5
-- Resets and starts next episode
-- Stops after collecting `num_demos` demonstrations
-
-## Key Parameters
-
-### Required
-- `--task`: Task environment name (e.g., `LeIsaac-SO101-CleanToyTable-BiArm-v0`)
-- `--waypoint_file`: Path to waypoint JSON file
-
-### Waypoint Control
-- `--command_type`: `position` (position-only) or `pose` (position+orientation)
-  - `position`: Only controls end-effector position, orientation follows naturally
-  - `pose`: Controls both position and orientation (requires `orientation` in JSON)
-- `--hold_steps`: Override hold steps for all waypoints (optional)
-- `--position_tol`: Position convergence tolerance in meters (default: 0.05)
-- `--orientation_tol`: Orientation convergence tolerance (default: 0.02)
-- `--pose_interp_gain`: Interpolation gain for pose commands (0-1, default: 0.3)
-- `--interp_gain`: Interpolation gain for joint targets (0-1, default: 0.3)
-- `--episode_end_delay`: Delay in seconds after last waypoint (default: 2.0)
-- `--force_wrist_down`: Force wrist_flex joint to point downward (default: enabled)
-- `--wrist_flex_angle`: Target angle for wrist_flex joint in radians (default: 1.57 ≈ 90°)
-
-### Recording (only with `--record`)
-- `--record`: Enable data recording (flag)
-- `--dataset_file`: Output HDF5 file path
-- `--num_demos`: Number of demonstrations to collect
-
-### Simulation
-- `--step_hz`: Simulation frequency in Hz (default: 30)
-- `--enable_cameras`: Enable camera rendering (for vision data)
-- `--seed`: Random seed for environment
-
-## Examples
-
-### Example 1: Test Waypoints (Playback)
-```bash
-python scripts/environments/waypoints/bi_arm_waypoint_data_collection.py \
-    --task=LeIsaac-SO101-CleanToyTable-BiArm-v0 \
-    --waypoint_file="playground/waypoints/my_waypoints.json" \
-    --step_hz=30 \
-    --position_tol=0.05
-```
-
-### Example 2: Collect 50 Demonstrations
-```bash
-python scripts/environments/waypoints/bi_arm_waypoint_data_collection.py \
-    --task=LeIsaac-SO101-CleanToyTable-BiArm-v0 \
-    --waypoint_file="playground/waypoints/bi_arm_relative_demo.json" \
-    --record \
-    --dataset_file="datasets/clean_table_demos.hdf5" \
-    --num_demos=50 \
-    --enable_cameras
-```
-
-### Example 3: Pose Mode with Orientation Control
-```bash
-python scripts/environments/waypoints/bi_arm_waypoint_data_collection.py \
-    --task=LeIsaac-SO101-CleanToyTable-BiArm-v0 \
-    --waypoint_file="playground/waypoints/oriented_waypoints.json" \
-    --command_type=pose \
-    --orientation_tol=0.02 \
-    --record \
-    --dataset_file="datasets/oriented_demos.hdf5" \
-    --num_demos=10
-```
-
-## Creating Waypoint Files
-
-### Step 1: Determine Target Positions
-
-Use teleoperation or manual control to find desired end-effector positions:
-
-```bash
-python scripts/environments/teleoperation/teleop_se3_agent.py \
-    --task=LeIsaac-SO101-CleanToyTable-BiArm-v0 \
-    --teleop_device=keyboard \
-    --num_envs=1
-```
-
-Note the positions displayed in the terminal.
-
-### Step 2: Create JSON File
-
-Create a JSON file with your waypoints:
+Create a JSON file with waypoint sequence (e.g., `playground/waypoints/bi_arm_demo.json`):
 
 ```json
 [
@@ -208,307 +44,241 @@ Create a JSON file with your waypoints:
     "relative": false,
     "left": {
       "position": [0.22, -0.45, 0.22],
-      "gripper": 0.0
+      "gripper": 0.0,
+      "wrist_flex": 1.57
     },
     "right": {
       "position": [0.55, -0.45, 0.22],
-      "gripper": 0.0
+      "gripper": 0.0,
+      "wrist_flex": 1.57
     },
     "hold_steps": 45
   },
   {
     "relative": false,
     "left": {
-      "position": [0.22, -0.45, 0.11],
-      "gripper": 0.6
+      "position": [0.22, -0.45, 0.16],
+      "gripper": 0.6,
+      "wrist_flex": 1.57
     },
     "right": {
-      "position": [0.55, -0.45, 0.11],
-      "gripper": 0.6
+      "position": [0.55, -0.45, 0.16],
+      "gripper": 0.6,
+      "wrist_flex": 1.57
     },
-    "hold_steps": 60
+    "hold_steps": 30
   }
 ]
 ```
 
-### Step 3: Test Playback
+**Waypoint Parameters:**
+- `position`: End-effector target position in world frame [x, y, z] (meters)
+- `orientation`: (Optional) Target orientation as quaternion [w, x, y, z]
+- `gripper`: Gripper opening (0.0 = closed, 1.0 = open)
+- `wrist_flex`: (Optional) Override wrist_flex joint angle in radians
+- `hold_steps`: Number of steps to hold at waypoint before proceeding
 
+### 2. Collect Data
+
+**Basic usage (playback only):**
 ```bash
 python scripts/environments/waypoints/bi_arm_waypoint_data_collection.py \
     --task=LeIsaac-SO101-CleanToyTable-BiArm-v0 \
-    --waypoint_file="playground/waypoints/my_waypoints.json"
+    --waypoint_file="playground/waypoints/bi_arm_demo.json" \
+    --controller_type=dik \
+    --enable_cameras
 ```
 
-## Output Data Format
+**Record demonstrations:**
+```bash
+python scripts/environments/waypoints/bi_arm_waypoint_data_collection.py \
+    --task=LeIsaac-SO101-CleanToyTable-BiArm-v0 \
+    --waypoint_file="playground/waypoints/bi_arm_demo.json" \
+    --controller_type=dik \
+    --record \
+    --dataset_file="datasets/my_demos.hdf5" \
+    --num_demos=10 \
+    --enable_cameras
+```
 
-When using `--record`, data is saved to HDF5 format compatible with LeRobot:
+**Using batch file:**
+```bash
+# Edit playground/running_scripts/collect_waypoint_data.bat with your settings
+playground\running_scripts\collect_waypoint_data.bat
+```
 
+### 3. Command-Line Arguments
+
+#### Controller Selection
+- `--controller_type`: Controller backend
+  - `dik` (default): DifferentialIK controller
+  - `osc` (experimental): OperationalSpaceController
+
+#### Waypoint Parameters
+- `--waypoint_file`: Path to waypoint JSON file
+- `--step_hz`: Environment stepping rate (default: 30 Hz)
+- `--hold_steps`: Global override for waypoint hold durations
+- `--position_tol`: Position convergence tolerance in meters (default: 0.05)
+- `--pose_interp_gain`: Pose interpolation smoothing (0-1, default: 0.3)
+
+#### DifferentialIK Specific
+- `--command_type`: IK control mode
+  - `position`: Position-only control (faster, recommended)
+  - `pose`: Full 6-DOF pose control
+- `--interp_gain`: Joint interpolation smoothing (0-1, default: 0.3)
+
+#### OperationalSpaceController Specific (Experimental)
+- `--motion_stiffness`: Impedance stiffness (default: 150.0)
+- `--motion_damping_ratio`: Damping ratio (default: 1.0)
+
+#### Wrist Control
+- `--force_wrist_down`: Force wrist_flex to point downward (default: enabled)
+- `--wrist_flex_angle`: Target wrist_flex angle in radians (default: 1.57 = 90°)
+
+#### Recording
+- `--record`: Enable data recording
+- `--dataset_file`: Output HDF5 file path
+- `--num_demos`: Number of demonstrations to collect
+- `--enable_cameras`: Enable camera observations (required for VLM datasets)
+
+## Dataset Pipeline
+
+### HDF5 Dataset Structure
+
+Recorded demonstrations are saved in HDF5 format:
 ```
 dataset.hdf5
 └── data/
     ├── demo_0/
-    │   ├── actions          # (N, 12) - joint positions [left_arm(5), left_gripper(1), right_arm(5), right_gripper(1)]
+    │   ├── actions              # (T, 12) joint positions
     │   ├── obs/
-    │   │   ├── joint_pos    # (N, 12) - current joint positions
-    │   │   ├── front        # (N, H, W, 3) - front camera images (if enabled)
-    │   │   └── wrist        # (N, H, W, 3) - wrist camera images (if enabled)
+    │   │   ├── joint_pos        # (T, 12)
+    │   │   ├── joint_vel        # (T, 12)
+    │   │   ├── left_wrist       # (T, H, W, 3) left camera RGB
+    │   │   ├── right_wrist      # (T, H, W, 3) right camera RGB
+    │   │   └── top              # (T, H, W, 3) top camera RGB
     │   └── attrs: {num_samples, seed, success}
     └── demo_1/
         └── ...
 ```
 
-### Converting to LeRobot Format and Uploading to HuggingFace
+### Convert to LeRobot Format
 
-After collecting demonstrations in HDF5 format, you can convert them to LeRobot's Parquet format and upload to HuggingFace Hub for training.
-
-#### Prerequisites
-
-The conversion script requires the LeRobot library (v0.3.3). Install it in a separate conda environment:
-
+**Prerequisites:**
 ```bash
-# Create LeRobot environment
+# Create separate LeRobot environment
 conda create -n lerobot python=3.10
 conda activate lerobot
-
-# Install LeRobot v0.3.3
-pip install lerobot==0.3.3
-
-# Install additional dependencies
-pip install datasets Pillow opencv-python tqdm
+pip install lerobot==0.3.3  # Tested version
 ```
 
-**Important:** The conversion script must be run in the `lerobot` environment, not the `leisaac` environment.
-
-#### Conversion Command
-
+**Convert and upload:**
 ```bash
-# Activate LeRobot environment
 conda activate lerobot
 
-# Run conversion (bi-arm example)
 python scripts/convert/isaaclab2lerobot.py \
-    --dataset_path_or_repo your-username/clean-toy-table \
-    --robot_type bi_so101_follower \
-    --fps 30 \
-    --hdf5_files datasets/waypoint_demos.hdf5 \
-    --task "Clean toys from table using bi-arm robot" \
-    --push_to_hub
-```
-
-#### Key Parameters
-
-- `--dataset_path_or_repo`: HuggingFace repository name (format: `username/dataset-name`)
-- `--robot_type`: Robot configuration type
-  - `so101_follower`: Single-arm SO-101 robot (6 DOF: 5 arm joints + 1 gripper)
-  - `bi_so101_follower`: Bi-arm SO-101 robot (12 DOF: 2 arms × 6 DOF each)
-- `--fps`: Frames per second (must match `--step_hz` from data collection)
-- `--hdf5_files`: Space-separated list of HDF5 files to convert (can merge multiple files)
-- `--task`: Task description (used for dataset metadata)
-- `--push_to_hub`: Upload to HuggingFace Hub (requires authentication)
-
-#### Authentication Setup
-
-Before pushing to HuggingFace Hub, authenticate:
-
-```bash
-# Login to HuggingFace
-huggingface-cli login
-
-# Or set token as environment variable
-export HF_TOKEN=your_token_here
-```
-
-#### Examples
-
-**Example 1: Single-Arm Dataset**
-```bash
-python scripts/convert/isaaclab2lerobot.py \
-    --dataset_path_or_repo myusername/pick-orange-demos \
+    --dataset_path_or_repo YourUsername/dataset_name \
     --robot_type so101_follower \
     --fps 30 \
-    --hdf5_files datasets/orange_demos_1.hdf5 datasets/orange_demos_2.hdf5 \
-    --task "Pick up orange and place on plate" \
+    --hdf5_files datasets/my_demos.hdf5 \
+    --task "Pick up objects and place them in the box" \
     --push_to_hub
 ```
 
-**Example 2: Bi-Arm Dataset (from waypoints)**
+**Parameters:**
+- `--dataset_path_or_repo`: HuggingFace dataset repository name
+- `--robot_type`: Robot configuration (`so101_follower` or `bi_so101_follower`)
+- `--fps`: Video frame rate (default: 30)
+- `--hdf5_files`: Space-separated list of HDF5 files to merge
+- `--task`: Task description for dataset metadata
+- `--push_to_hub`: Upload to HuggingFace Hub (requires authentication)
+
+**Authentication:**
 ```bash
+# First time setup
+huggingface-cli login
+```
+
+### Complete Workflow Example
+
+```bash
+# 1. Collect demonstrations
+python scripts/environments/waypoints/bi_arm_waypoint_data_collection.py \
+    --task=LeIsaac-SO101-CleanToyTable-BiArm-v0 \
+    --waypoint_file="playground/waypoints/bi_arm_demo.json" \
+    --controller_type=dik \
+    --record \
+    --dataset_file="datasets/clean_table_demos.hdf5" \
+    --num_demos=50 \
+    --enable_cameras
+
+# 2. Convert to LeRobot and upload
+conda activate lerobot
 python scripts/convert/isaaclab2lerobot.py \
-    --dataset_path_or_repo myusername/clean-table-waypoint \
+    --dataset_path_or_repo myusername/clean_table_so101 \
     --robot_type bi_so101_follower \
     --fps 30 \
-    --hdf5_files datasets/waypoint_demos.hdf5 \
-    --task "Clean toy table using waypoint-based bi-arm control" \
+    --hdf5_files datasets/clean_table_demos.hdf5 \
+    --task "Clean toys from table surface using bi-arm coordination" \
     --push_to_hub
 ```
 
-**Example 3: Local Conversion Only (no upload)**
+## Advanced Usage
+
+### Multiple Waypoint Files
+
+Collect data from different scenarios and merge:
 ```bash
+# Collect scenario 1
+python ... --dataset_file="datasets/scenario1.hdf5"
+
+# Collect scenario 2
+python ... --dataset_file="datasets/scenario2.hdf5"
+
+# Merge during conversion
 python scripts/convert/isaaclab2lerobot.py \
-    --dataset_path_or_repo local-test-dataset \
-    --robot_type bi_so101_follower \
-    --fps 30 \
-    --hdf5_files datasets/waypoint_demos.hdf5 \
-    --task "Test dataset"
-# Omit --push_to_hub to save locally only
+    --hdf5_files datasets/scenario1.hdf5 datasets/scenario2.hdf5 \
+    --push_to_hub
 ```
 
-#### Conversion Process
+### Debugging Waypoints
 
-The script performs the following steps:
-
-1. **Load HDF5 Data**: Reads all successful episodes from input HDF5 files
-2. **Skip Initial Frames**: Removes first 5 frames of each episode (stabilization period)
-3. **Convert Actions**: Transforms joint positions from IsaacLab format (radians, [-π, π]) to LeRobot format (degrees, normalized ranges)
-4. **Process Images**: Compresses camera images as video files (if `--enable_cameras` was used during collection)
-5. **Create Parquet Files**: Saves data in LeRobot's columnar format for efficient loading
-6. **Generate Metadata**: Creates `meta_data/info.json` with dataset statistics and configuration
-7. **Upload to Hub**: Pushes dataset to HuggingFace repository (if `--push_to_hub` specified)
-
-#### Output Structure
-
-The converted dataset has the following structure:
-
-```
-local_data/your-username/dataset-name/
-├── meta_data/
-│   └── info.json              # Dataset metadata (fps, robot_type, task description)
-├── videos/
-│   ├── chunk-000/
-│   │   ├── observation.images.front_000000.mp4
-│   │   ├── observation.images.wrist_000000.mp4
-│   │   └── ...
-│   └── chunk-001/
-│       └── ...
-└── data/
-    ├── chunk-000/
-    │   └── train-00000-of-00001.parquet
-    └── chunk-001/
-        └── train-00001-of-00002.parquet
-```
-
-#### Verifying Conversion
-
-After conversion, verify the dataset:
-
+Run without recording to test trajectories:
 ```bash
-# In lerobot environment
-python -c "
-from lerobot.common.datasets.lerobot_dataset import LeRobotDataset
-dataset = LeRobotDataset('your-username/dataset-name')
-print(f'Total frames: {len(dataset)}')
-print(f'Features: {dataset.features}')
-"
+python scripts/environments/waypoints/bi_arm_waypoint_data_collection.py \
+    --task=LeIsaac-SO101-CleanToyTable-BiArm-v0 \
+    --waypoint_file="playground/waypoints/test.json" \
+    --controller_type=dik \
+    --enable_cameras
 ```
 
-#### Troubleshooting Conversion
-
-**Issue: "Dataset not found" error**
-- Solution: Ensure `--push_to_hub` is used and HuggingFace token is set
-- Or check `local_data/` directory for local files
-
-**Issue: "Robot type mismatch" error**
-- Solution: Use `bi_so101_follower` for bi-arm tasks, `so101_follower` for single-arm
-- Check HDF5 file has 12 joints (bi-arm) or 6 joints (single-arm)
-
-**Issue: "FPS mismatch" warning**
-- Solution: Ensure `--fps` matches `--step_hz` from data collection
-- Common values: 30 Hz (default), 20 Hz (slower hardware)
-
-**Issue: Video encoding fails**
-- Solution: Install ffmpeg: `sudo apt-get install ffmpeg` (Linux) or `brew install ffmpeg` (macOS)
-- Or disable video conversion by modifying the script
+Press `Ctrl+C` to stop execution.
 
 ## Troubleshooting
 
-### Waypoints Not Converging
+### GPU Crashes During Data Collection
+- Try reducing `--step_hz` (e.g., from 30 to 20 Hz)
+- Decrease `--pose_interp_gain` for smoother transitions
+- Ensure first waypoint doesn't have `wrist_flex` to allow smooth reset transitions
+- Consider using `--controller_type=osc` (experimental)
 
-**Symptom:** Robot oscillates or hold counter keeps resetting
+### Gripper Not Pointing Downward
+- Ensure `--force_wrist_down` is enabled (default)
+- Add explicit `wrist_flex: 1.57` to waypoint JSON
+- Check `--wrist_flex_angle` matches desired orientation
 
-**Solutions:**
-- Increase `--position_tol` (e.g., `0.05` → `0.10`)
-- Decrease `--pose_interp_gain` for smoother motion (e.g., `0.3` → `0.2`)
-- Decrease `--interp_gain` for more stable IK (e.g., `0.3` → `0.2`)
-- Check waypoint positions are reachable (not in collision or outside workspace)
+### Waypoint Not Converging
+- Increase `--position_tol` (e.g., from 0.05 to 0.1)
+- Increase waypoint `hold_steps` in JSON
+- Verify target positions are reachable (no singularities)
 
-### Robot Flips or Unstable in Pose Mode
+### LeRobot Conversion Errors
+- Ensure LeRobot version compatibility (`pip install lerobot==0.3.3`)
+- Check HDF5 file contains successful episodes (`success=True`)
+- Verify camera keys match expected format (left_wrist, right_wrist, top)
 
-**Symptom:** Robot makes sudden large movements when using `--command_type=pose`
+## See Also
 
-**Solutions:**
-- Switch to `--command_type=position` mode
-- Verify quaternions in JSON are normalized
-- Use quaternion values from actual robot poses (see teleoperation logs)
-- Increase `--orientation_tol` (e.g., `0.02` → `0.05`)
-
-### Recording Not Starting
-
-**Symptom:** `--record` flag doesn't save data
-
-**Solutions:**
-- Ensure `--record` flag is present
-- Check `--dataset_file` path is valid and writable
-- Verify `--num_demos` is greater than 0
-- Check terminal output for StreamingRecorderManager messages
-
-### Low Frame Rate
-
-**Symptom:** Simulation runs slowly
-
-**Solutions:**
-- Decrease `--step_hz` (e.g., `30` → `20`)
-- Disable cameras if not needed (remove `--enable_cameras`)
-- Reduce number of environments (should already be 1 for waypoints)
-
-## Tips and Best Practices
-
-1. **Start with Playback Mode**: Always test waypoints without `--record` first to verify they work correctly
-
-2. **Use Position Mode**: Unless you specifically need orientation control, use `--command_type=position` for better stability
-
-3. **Tune Tolerances**: Adjust `--position_tol` based on your task requirements:
-   - Precise manipulation: `0.01` - `0.02` m
-   - General movement: `0.05` - `0.10` m
-
-4. **Hold Steps**: Use longer hold times for:
-   - Grasping operations (60+ steps)
-   - Final placement (60+ steps)
-   - Waypoints can use shorter holds (10-30 steps)
-
-5. **Episode End Delay**: Adjust `--episode_end_delay` to ensure:
-   - Object has settled after manipulation
-   - Last action has fully executed
-   - Typical range: 1-3 seconds
-
-6. **Camera Rendering**: Only use `--enable_cameras` when needed for vision-based policies:
-   - Adds computational overhead
-   - Increases dataset size significantly
-
-7. **Data Collection**: For robust datasets:
-   - Collect at least 10-50 demonstrations per task
-   - Use domain randomization in task config if available
-   - Verify data quality by replaying HDF5 file
-
-## File Structure
-
-```
-scripts/environments/waypoints/
-├── README.md                              # This file
-├── waypoint_controller.py                 # Core waypoint execution module
-└── bi_arm_waypoint_data_collection.py    # Main execution script
-
-playground/waypoints/
-├── bi_arm_relative_demo.json             # Example waypoint file
-└── *.json                                # Your custom waypoint files
-
-playground/running_scripts/
-├── run_waypoints_playback.bat            # Playback mode (no recording)
-└── collect_waypoint_data.bat             # Data collection mode (with recording)
-```
-
-## Related Documentation
-
-- [LeIsaac Project README](../../../README.md)
-- [Teleoperation Guide](../teleoperation/)
-- [Data Conversion Guide](../../convert/)
-- [IsaacLab Controllers](https://isaac-sim.github.io/IsaacLab/source/api/isaaclab/controllers.html)
+- [Main Repository README](../../../README.md)
+- [LeRobot Documentation](https://github.com/huggingface/lerobot)
+- [IsaacLab Tutorials](https://isaac-sim.github.io/IsaacLab/)

@@ -13,6 +13,8 @@ python scripts/environments/waypoints/bi_arm_waypoint_data_collection.py ^
     --pose_interp_gain=0.3 ^
     --interp_gain=0.3 ^
     --command_type=position ^
+    --force_wrist_down ^
+    --wrist_flex_angle=1.57 ^
     --enable_cameras
 
 pause
