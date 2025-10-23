@@ -173,8 +173,8 @@ class CleanToyTableBiArmEnvCfg(ManagerBasedRLEnvCfg):
         self.sim.physx.friction_correlation_distance = 0.00625
         self.sim.render.enable_translucency = True
 
-        self.scene.left_arm.init_state.pos = (-0.6, -0.2, 0.43)
-        self.scene.right_arm.init_state.pos = (-0.15, -0.2, 0.43)
+        self.scene.left_arm.init_state.pos = (0.22,-0.7, 0.01)
+        self.scene.right_arm.init_state.pos = (0.55, -0.7, 0.01)
 
         parse_usd_and_create_subassets(LIGHTWHEEL_TOYROOM_USD_PATH, self)
 
