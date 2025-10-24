@@ -213,12 +213,13 @@ def process_single_arm_data(dataset: LeRobotDataset, task: str, demo_group: h5py
     # skip the first 5 frames
     for frame_index in tqdm(range(5, total_state_frames), desc='Processing each frame'):
         frame = {
-            "action": actions[frame_index],
-            "observation.state": joint_pos[frame_index],
             "observation.images.front": front_images[frame_index],
             "observation.images.wrist": wrist_images[frame_index],
+            "observation.state": joint_pos[frame_index],
+            "action": actions[frame_index],
+            "task": task,
         }
-        dataset.add_frame(frame=frame, task=task)
+        dataset.add_frame(frame)
 
     return True
 
@@ -249,13 +250,14 @@ def process_bi_arm_data(dataset: LeRobotDataset, task: str, demo_group: h5py.Gro
     # skip the first 5 frames
     for frame_index in tqdm(range(5, total_state_frames), desc='Processing each frame'):
         frame = {
-            "action": actions[frame_index],
-            "observation.state": np.concatenate([left_joint_pos[frame_index], right_joint_pos[frame_index]]),
             "observation.images.left": left_images[frame_index],
-            "observation.images.top": top_images[frame_index],
             "observation.images.right": right_images[frame_index],
+            "observation.images.top": top_images[frame_index],
+            "observation.state": np.concatenate([left_joint_pos[frame_index], right_joint_pos[frame_index]]),
+            "action": actions[frame_index],
+            "task": task,
         }
-        dataset.add_frame(frame=frame, task=task)
+        dataset.add_frame(frame)
 
     return True
 
