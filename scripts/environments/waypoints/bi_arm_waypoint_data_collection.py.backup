@@ -54,7 +54,6 @@ import os
 import time
 import torch
 import gymnasium as gym
-import gc
 
 from isaaclab.envs import ManagerBasedRLEnv
 from isaaclab_tasks.utils import parse_env_cfg
@@ -71,13 +70,13 @@ class RateLimiter:
         self.hz = hz
         self.last_time = time.time()
         self.sleep_duration = 1.0 / hz
+        self.render_period = min(0.0166, self.sleep_duration)
 
     def sleep(self, env):
         next_wakeup_time = self.last_time + self.sleep_duration
-        # Sleep directly without excessive rendering to save GPU memory
-        remaining = next_wakeup_time - time.time()
-        if remaining > 0:
-            time.sleep(remaining)
+        while time.time() < next_wakeup_time:
+            time.sleep(self.render_period)
+            env.sim.render()
         self.last_time += self.sleep_duration
         if self.last_time < time.time():
             while self.last_time < time.time():
@@ -125,8 +124,8 @@ def main():
     if args_cli.record:
         del env.recorder_manager
         env.recorder_manager = StreamingRecorderManager(env_cfg.recorders, env)
-        env.recorder_manager.flush_steps = 50  # Flush frequently to prevent GPU memory buildup
-        env.recorder_manager.compression = None  # Disable compression to save GPU/CPU memory
+        env.recorder_manager.flush_steps = 100
+        env.recorder_manager.compression = 'lzf'
         print("[WaypointRunner] Environment created (recording enabled).")
         print(f"[WaypointRunner] Target: {args_cli.num_demos} demonstrations")
     else:
@@ -181,13 +180,6 @@ def main():
 
     # Reset environment
     env.reset()
-
-    # Force initial GPU memory cleanup
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
-        torch.cuda.synchronize()
-    gc.collect()
-
     rate_limiter.reset()
 
     # Start first episode
@@ -222,12 +214,6 @@ def main():
                         # Reset environment
                         env.reset()
 
-                        # Force GPU memory cleanup to prevent memory leak
-                        if torch.cuda.is_available():
-                            torch.cuda.empty_cache()
-                            torch.cuda.synchronize()
-                        gc.collect()
-
                         # Update demo count
                         if env.recorder_manager.exported_successful_episode_count > current_demo_count:
                             current_demo_count = env.recorder_manager.exported_successful_episode_count
@@ -257,13 +243,6 @@ def main():
                         # Playback mode - restart waypoints
                         print(f"[WaypointRunner] All waypoints complete. Restarting...")
                         env.reset()
-
-                        # Force GPU memory cleanup
-                        if torch.cuda.is_available():
-                            torch.cuda.empty_cache()
-                            torch.cuda.synchronize()
-                        gc.collect()
-
                         episode_running = True
                         current_waypoint_index = 0
                         episode_end_wait_time = None
@@ -271,7 +250,8 @@ def main():
                         controller.set_waypoint(waypoints[current_waypoint_index], hold_steps_override=args_cli.hold_steps)
                         print(f"  → Waypoint 1/{len(waypoints)}")
                 else:
-                    # Still waiting, just sleep
+                    # Still waiting, just step with last action
+                    env.sim.render()
                     rate_limiter.sleep(env)
                     continue
 
