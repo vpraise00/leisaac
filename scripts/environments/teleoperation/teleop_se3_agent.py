@@ -95,7 +95,6 @@ def manual_terminate(env: ManagerBasedRLEnv | DirectRLEnv, success: bool):
             env.termination_manager.set_term_cfg("success", TerminationTermCfg(func=lambda env: torch.zeros(env.num_envs, dtype=torch.bool, device=env.device)))
         env.termination_manager.compute()
     elif hasattr(env, "_get_dones"):
-        assert env.cfg.manual_terminate, "manual_terminate is not enabled for this environment"
         env.cfg.return_success_status = success
 
 
@@ -197,6 +196,8 @@ def main():  # noqa: C901
     rate_limiter = RateLimiter(args_cli.step_hz)
 
     # reset environment
+    if hasattr(env, "initialize"):
+        env.initialize()
     env.reset()
     teleop_interface.reset()
 
@@ -212,7 +213,8 @@ def main():  # noqa: C901
     while simulation_app.is_running():
         # run everything in inference mode
         with torch.inference_mode():
-            dynamic_reset_gripper_effort_limit_sim(env, args_cli.teleop_device)
+            if env.cfg.dynamic_reset_gripper_effort_limit:
+                dynamic_reset_gripper_effort_limit_sim(env, args_cli.teleop_device)
             actions = teleop_interface.advance()
             if should_reset_task_success:
                 print("Task Success!!!")

@@ -130,6 +130,8 @@ def main():
         idle_action = torch.zeros(env.action_space.shape)
 
     # reset before starting
+    if hasattr(env, "initialize"):
+        env.initialize()
     env.reset()
 
     rate_limiter = RateLimiter(args_cli.step_hz)
@@ -174,7 +176,8 @@ def main():
                         has_next_action = True
                     actions[env_id] = env_next_action
                 if args_cli.replay_mode == "action":
-                    dynamic_reset_gripper_effort_limit_sim(env, task_type)
+                    if env.cfg.dynamic_reset_gripper_effort_limit:
+                        dynamic_reset_gripper_effort_limit_sim(env, task_type)
                 env.step(actions)
                 rate_limiter.sleep(env)
             break
