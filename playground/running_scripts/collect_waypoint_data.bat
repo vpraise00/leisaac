@@ -14,7 +14,7 @@ python scripts/environments/waypoints/bi_arm_waypoint_data_collection.py ^
     --step_hz=30 ^
     --waypoint_file="playground\waypoints\bi_arm_relative_demo.json" ^
     --record ^
-    --dataset_file="datasets\waypoint_demos.hdf5" ^
+    --dataset_file="datasets\waypoint_demos_10epis.hdf5" ^
     --num_demos=10 ^
     --hold_steps=10 ^
     --position_tol=0.05 ^

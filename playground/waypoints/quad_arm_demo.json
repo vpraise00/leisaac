@@ -1,0 +1,62 @@
+[
+  {
+    "relative": false,
+    "nord": {
+      "position": [0.4, -0.25, 0.22],
+      "gripper": 0.0
+    },
+    "ost": {
+      "position": [0.6, -0.45, 0.22],
+      "gripper": 0.0
+    },
+    "west": {
+      "position": [0.2, -0.45, 0.22],
+      "gripper": 0.0
+    },
+    "sud": {
+      "position": [0.4, -0.65, 0.22],
+      "gripper": 0.0
+    },
+    "hold_steps": 45
+  },
+  {
+    "relative": false,
+    "nord": {
+      "position": [0.4, -0.25, 0.16],
+      "gripper": 0.6
+    },
+    "ost": {
+      "position": [0.6, -0.45, 0.16],
+      "gripper": 0.6
+    },
+    "west": {
+      "position": [0.2, -0.45, 0.16],
+      "gripper": 0.6
+    },
+    "sud": {
+      "position": [0.4, -0.65, 0.16],
+      "gripper": 0.6
+    },
+    "hold_steps": 30
+  },
+  {
+    "relative": false,
+    "nord": {
+      "position": [0.4, -0.25, 0.30],
+      "gripper": 0.6
+    },
+    "ost": {
+      "position": [0.6, -0.45, 0.30],
+      "gripper": 0.6
+    },
+    "west": {
+      "position": [0.2, -0.45, 0.30],
+      "gripper": 0.6
+    },
+    "sud": {
+      "position": [0.4, -0.65, 0.30],
+      "gripper": 0.6
+    },
+    "hold_steps": 60
+  }
+]
