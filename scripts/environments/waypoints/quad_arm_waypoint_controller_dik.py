@@ -51,7 +51,7 @@ class QuadArmWaypointController:
         orientation_tol: float = 0.02,
         pose_interp_gain: float = 1.0,
         interp_gain: float = 1.0,
-        force_wrist_down: bool = True,
+        force_wrist_down: bool = False,
         wrist_flex_angle: float = 1.57,
     ):
         """Initialize quad-arm waypoint controller."""
@@ -396,9 +396,17 @@ class QuadArmWaypointController:
         if within_pos and within_rot:
             self.hold_counter += 1
         else:
+            # Print error if close to converging (for debugging)
+            if self.hold_counter > 0:
+                max_err = max(pos_err_nord.item(), pos_err_ost.item(), pos_err_west.item(), pos_err_sud.item())
+                print(f"[Convergence] Hold counter reset. Max position error: {max_err:.4f}m (tol: {self.position_tol})")
             self.hold_counter = 0
 
         converged = self.hold_counter >= self.required_hold
+
+        # Print progress when getting close
+        if self.hold_counter > 0 and self.hold_counter % 10 == 0:
+            print(f"[Convergence] Hold counter: {self.hold_counter}/{self.required_hold}")
 
         return action, converged
 

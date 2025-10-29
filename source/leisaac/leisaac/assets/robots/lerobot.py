@@ -22,6 +22,11 @@ SO101_FOLLOWER_CFG = ArticulationCfg(
             solver_velocity_iteration_count=4,
             fix_root_link=True,
         ),
+        collision_props=sim_utils.CollisionPropertiesCfg(
+            collision_enabled=True,
+            contact_offset=0.05,
+            rest_offset=0.001,
+        ),
         activate_contact_sensors=True,
     ),
     init_state=ArticulationCfg.InitialStateCfg(

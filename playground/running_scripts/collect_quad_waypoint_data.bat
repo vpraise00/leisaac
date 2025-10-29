@@ -12,14 +12,13 @@ python scripts/environments/waypoints/quad_arm_waypoint_data_collection.py ^
     --step_hz=30 ^
     --waypoint_file="playground\waypoints\quad_arm_demo.json" ^
     --record ^
-    --dataset_file="datasets\quad_waypoint_demos.hdf5" ^
-    --num_demos=10 ^
-    --hold_steps=30 ^
-    --position_tol=0.05 ^
-    --pose_interp_gain=0.3 ^
-    --interp_gain=0.3 ^
+    --dataset_file="datasets\quad_waypoint_demos_50epis.hdf5" ^
+    --num_demos=50 ^
+    --position_tol=0.09 ^
+    --pose_interp_gain=0.25 ^
+    --interp_gain=0.25 ^
     --command_type=position ^
-    --wrist_flex_angle=1.57 ^
+    --episode_timeout=90 ^
     --enable_cameras ^
     --rendering_mode=performance
 

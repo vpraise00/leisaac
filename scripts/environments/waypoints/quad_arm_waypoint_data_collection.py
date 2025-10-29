@@ -30,13 +30,14 @@ parser.add_argument("--orientation_tol", type=float, default=0.02, help="Orienta
 parser.add_argument("--pose_interp_gain", type=float, default=0.3, help="Pose interpolation gain.")
 parser.add_argument("--interp_gain", type=float, default=0.3, help="Joint interpolation gain (only for dik).")
 parser.add_argument("--command_type", type=str, default="position", choices=["position", "pose"], help="IK command type (only for dik).")
-parser.add_argument("--force_wrist_down", action="store_true", default=True, help="Force wrist_flex joint to point downward.")
+parser.add_argument("--force_wrist_down", action="store_true", default=False, help="Force wrist_flex joint to point downward.")
 parser.add_argument("--wrist_flex_angle", type=float, default=1.57, help="Target angle for wrist_flex joint in radians (default: 1.57 = 90 deg).")
 
 # Recording parameters
 parser.add_argument("--record", action="store_true", default=False, help="Enable data recording.")
 parser.add_argument("--dataset_file", type=str, default="./datasets/quad_waypoint_dataset.hdf5", help="HDF5 output file.")
 parser.add_argument("--num_demos", type=int, default=10, help="Number of demonstrations to record.")
+parser.add_argument("--episode_timeout", type=float, default=120.0, help="Maximum episode duration in seconds (default: 120s). Episode will restart if timeout is exceeded.")
 
 # append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
@@ -131,7 +132,16 @@ def main():
 
     # Load waypoints
     waypoints = load_waypoints_from_json(args_cli.waypoint_file, env.device)
-    print(f"[DataCollection] Loaded {len(waypoints)} waypoints.")
+    print(f"[DataCollection] Loaded {len(waypoints)} waypoints from {args_cli.waypoint_file}")
+    print("[DataCollection] Waypoint sequence:")
+    for idx, wp in enumerate(waypoints, 1):
+        print(f"  Waypoint {idx}:")
+        print(f"    Nord:  pos=({wp.nord_world_pose[0, 0]:.3f}, {wp.nord_world_pose[0, 1]:.3f}, {wp.nord_world_pose[0, 2]:.3f}), gripper={wp.nord_gripper:.2f}")
+        print(f"    Ost:   pos=({wp.ost_world_pose[0, 0]:.3f}, {wp.ost_world_pose[0, 1]:.3f}, {wp.ost_world_pose[0, 2]:.3f}), gripper={wp.ost_gripper:.2f}")
+        print(f"    West:  pos=({wp.west_world_pose[0, 0]:.3f}, {wp.west_world_pose[0, 1]:.3f}, {wp.west_world_pose[0, 2]:.3f}), gripper={wp.west_gripper:.2f}")
+        print(f"    Sud:   pos=({wp.sud_world_pose[0, 0]:.3f}, {wp.sud_world_pose[0, 1]:.3f}, {wp.sud_world_pose[0, 2]:.3f}), gripper={wp.sud_gripper:.2f}")
+        print(f"    Hold steps: {wp.hold_steps}")
+    print()
 
     # Create waypoint controller
     print("[DataCollection] Using DifferentialIK controller for quad-arm...")
@@ -156,6 +166,7 @@ def main():
     current_waypoint_index = 0
     episode_running = False
     episode_end_wait_time = None  # Time when last waypoint was reached
+    episode_start_time = None  # Time when episode started
 
     # Reset environment
     env.reset()
@@ -175,6 +186,7 @@ def main():
         print(f"[WaypointRunner] Starting waypoint execution...")
 
     episode_running = True
+    episode_start_time = time.time()
     current_waypoint_index = 0
     controller.reset()
     controller.set_waypoint(waypoints[current_waypoint_index], hold_steps_override=args_cli.hold_steps)
@@ -219,6 +231,7 @@ def main():
                         # Start next episode
                         print(f"[WaypointRunner] Starting Episode {current_demo_count + 1}/{args_cli.num_demos}...")
                         episode_running = True
+                        episode_start_time = time.time()
                         current_waypoint_index = 0
                         episode_end_wait_time = None
                         controller.reset()
@@ -243,6 +256,7 @@ def main():
                         gc.collect()
 
                         episode_running = True
+                        episode_start_time = time.time()
                         current_waypoint_index = 0
                         episode_end_wait_time = None
                         controller.reset()
@@ -254,6 +268,31 @@ def main():
                     continue
 
             if episode_running:
+                # Check episode timeout
+                episode_duration = time.time() - episode_start_time
+                if episode_duration > args_cli.episode_timeout:
+                    print(f"[WaypointRunner] Episode timeout ({episode_duration:.1f}s > {args_cli.episode_timeout}s). Restarting episode...")
+
+                    # Reset environment
+                    env.reset()
+
+                    # Force GPU memory cleanup
+                    if torch.cuda.is_available():
+                        torch.cuda.empty_cache()
+                        torch.cuda.synchronize()
+                    gc.collect()
+
+                    # Restart episode
+                    episode_running = True
+                    episode_start_time = time.time()
+                    current_waypoint_index = 0
+                    episode_end_wait_time = None
+                    controller.reset()
+                    controller.set_waypoint(waypoints[current_waypoint_index], hold_steps_override=args_cli.hold_steps)
+                    print(f"  → Waypoint 1/{len(waypoints)}")
+                    rate_limiter.sleep(env)
+                    continue
+
                 # Execute one control step
                 action, converged = controller.step()
                 env.step(action)

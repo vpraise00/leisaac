@@ -50,6 +50,51 @@ def init_action_cfg(action_cfg, device):
             joint_names=["gripper"],
             scale=1.0,
         )
+    elif device in ['quad-so101leader']:
+        # Nord arm (North)
+        action_cfg.nord_arm_action = mdp.JointPositionActionCfg(
+            asset_name="nord_arm",
+            joint_names=["shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll"],
+            scale=1.0,
+        )
+        action_cfg.nord_gripper_action = mdp.JointPositionActionCfg(
+            asset_name="nord_arm",
+            joint_names=["gripper"],
+            scale=1.0,
+        )
+        # Ost arm (East)
+        action_cfg.ost_arm_action = mdp.JointPositionActionCfg(
+            asset_name="ost_arm",
+            joint_names=["shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll"],
+            scale=1.0,
+        )
+        action_cfg.ost_gripper_action = mdp.JointPositionActionCfg(
+            asset_name="ost_arm",
+            joint_names=["gripper"],
+            scale=1.0,
+        )
+        # West arm
+        action_cfg.west_arm_action = mdp.JointPositionActionCfg(
+            asset_name="west_arm",
+            joint_names=["shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll"],
+            scale=1.0,
+        )
+        action_cfg.west_gripper_action = mdp.JointPositionActionCfg(
+            asset_name="west_arm",
+            joint_names=["gripper"],
+            scale=1.0,
+        )
+        # Sud arm (South)
+        action_cfg.sud_arm_action = mdp.JointPositionActionCfg(
+            asset_name="sud_arm",
+            joint_names=["shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll"],
+            scale=1.0,
+        )
+        action_cfg.sud_gripper_action = mdp.JointPositionActionCfg(
+            asset_name="sud_arm",
+            joint_names=["gripper"],
+            scale=1.0,
+        )
     elif device in ['mimic_ik_abs_so101_leader']:
         action_cfg.arm_action = mdp.DifferentialInverseKinematicsActionCfg(
             asset_name="robot",

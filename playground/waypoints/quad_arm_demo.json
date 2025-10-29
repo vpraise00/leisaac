@@ -1,62 +1,222 @@
 [
   {
-    "relative": false,
+    "comment": "Starting position - robots in sitting pose, grippers closed",
     "nord": {
-      "position": [0.4, -0.25, 0.22],
+      "position": [0.4, -0.12, 0.29],
       "gripper": 0.0
     },
     "ost": {
-      "position": [0.6, -0.45, 0.22],
+      "position": [0.73, -0.45, 0.29],
       "gripper": 0.0
     },
     "west": {
-      "position": [0.2, -0.45, 0.22],
+      "position": [0.07, -0.45, 0.29],
       "gripper": 0.0
     },
     "sud": {
-      "position": [0.4, -0.65, 0.22],
+      "position": [0.4, -0.78, 0.29],
       "gripper": 0.0
     },
-    "hold_steps": 45
+    "hold_steps": 60
   },
   {
-    "relative": false,
+    "comment": "Move to outside the desk, open grippers",
     "nord": {
-      "position": [0.4, -0.25, 0.16],
-      "gripper": 0.6
+      "position": [0.4, -0.15, 0.21],
+      "gripper": 0.7
     },
     "ost": {
-      "position": [0.6, -0.45, 0.16],
-      "gripper": 0.6
+      "position": [0.7, -0.45, 0.21],
+      "gripper": 0.7
     },
     "west": {
-      "position": [0.2, -0.45, 0.16],
-      "gripper": 0.6
+      "position": [0.1, -0.45, 0.21],
+      "gripper": 0.7
     },
     "sud": {
-      "position": [0.4, -0.65, 0.16],
-      "gripper": 0.6
+      "position": [0.4, -0.75, 0.21],
+      "gripper": 0.7
+    },
+    "hold_steps": 70
+  },
+  {
+    "comment": "Approach desk edges - grippers still open",
+    "nord": {
+      "position": [0.4, -0.31, 0.19],
+      "gripper": 0.7
+    },
+    "ost": {
+      "position": [0.51, -0.45, 0.19],
+      "gripper": 0.7
+    },
+    "west": {
+      "position": [0.29, -0.45, 0.19],
+      "gripper": 0.7
+    },
+    "sud": {
+      "position": [0.4, -0.60, 0.17],
+      "gripper": 0.7
+    },
+    "hold_steps": 60
+  },
+  {
+    "comment": "Close grippers - same x,y as waypoint 3, slightly lower z",
+    "nord": {
+      "position": [0.4, -0.31, 0.19],
+      "gripper": 0.0
+    },
+    "ost": {
+      "position": [0.51, -0.45, 0.19],
+      "gripper": 0.0
+    },
+    "west": {
+      "position": [0.29, -0.45, 0.19],
+      "gripper": 0.0
+    },
+    "sud": {
+      "position": [0.4, -0.60, 0.17],
+      "gripper": 0.0
+    },
+    "hold_steps": 60
+  },
+  {
+    "comment": "Pull outward 0.01 to secure grip",
+    "nord": {
+      "position": [0.4, -0.30, 0.2],
+      "gripper": 0.0
+    },
+    "ost": {
+      "position": [0.52, -0.45, 0.2],
+      "gripper": 0.0
+    },
+    "west": {
+      "position": [0.28, -0.45, 0.2],
+      "gripper": 0.0
+    },
+    "sud": {
+      "position": [0.4, -0.61, 0.2],
+      "gripper": 0.0
     },
     "hold_steps": 30
   },
   {
-    "relative": false,
+    "comment": "Lift the desk up (same x,y as waypoint 5)",
     "nord": {
-      "position": [0.4, -0.25, 0.30],
-      "gripper": 0.6
+      "position": [0.4, -0.30, 0.24],
+      "gripper": 0.0
     },
     "ost": {
-      "position": [0.6, -0.45, 0.30],
-      "gripper": 0.6
+      "position": [0.52, -0.45, 0.24],
+      "gripper": 0.0
     },
     "west": {
-      "position": [0.2, -0.45, 0.30],
-      "gripper": 0.6
+      "position": [0.28, -0.45, 0.24],
+      "gripper": 0.0
     },
     "sud": {
-      "position": [0.4, -0.65, 0.30],
-      "gripper": 0.6
+      "position": [0.4, -0.61, 0.24],
+      "gripper": 0.0
     },
     "hold_steps": 60
+  },
+  {
+    "comment": "Hold the desk for 5 seconds",
+    "nord": {
+      "position": [0.4, -0.30, 0.24],
+      "gripper": 0.0
+    },
+    "ost": {
+      "position": [0.52, -0.45, 0.24],
+      "gripper": 0.0
+    },
+    "west": {
+      "position": [0.28, -0.45, 0.24],
+      "gripper": 0.0
+    },
+    "sud": {
+      "position": [0.4, -0.61, 0.24],
+      "gripper": 0.0
+    },
+    "hold_steps": 150
+  },
+  {
+    "comment": "Lower the desk down",
+    "nord": {
+      "position": [0.4, -0.30, 0.2],
+      "gripper": 0.0
+    },
+    "ost": {
+      "position": [0.52, -0.45, 0.2],
+      "gripper": 0.0
+    },
+    "west": {
+      "position": [0.28, -0.45, 0.2],
+      "gripper": 0.0
+    },
+    "sud": {
+      "position": [0.4, -0.61, 0.2],
+      "gripper": 0.0
+    },
+    "hold_steps": 30
+  },
+  {
+    "comment": "Open grippers to release desk",
+    "nord": {
+      "position": [0.4, -0.30, 0.2],
+      "gripper": 0.7
+    },
+    "ost": {
+      "position": [0.52, -0.45, 0.2],
+      "gripper": 0.7
+    },
+    "west": {
+      "position": [0.28, -0.45, 0.2],
+      "gripper": 0.7
+    },
+    "sud": {
+      "position": [0.4, -0.61, 0.2],
+      "gripper": 0.7
+    },
+    "hold_steps": 30
+  },
+  {
+    "comment": "Move back to outside the desk, close grippers",
+    "nord": {
+      "position": [0.4, -0.15, 0.2],
+      "gripper": 0.0
+    },
+    "ost": {
+      "position": [0.7, -0.45, 0.2],
+      "gripper": 0.0
+    },
+    "west": {
+      "position": [0.1, -0.45, 0.2],
+      "gripper": 0.0
+    },
+    "sud": {
+      "position": [0.4, -0.75, 0.2],
+      "gripper": 0.0
+    },
+    "hold_steps": 30
+  },
+  {
+    "comment": "Return to initial sitting position, grippers closed",
+    "nord": {
+      "position": [0.4, -0.12, 0.29],
+      "gripper": 0.0
+    },
+    "ost": {
+      "position": [0.73, -0.45, 0.29],
+      "gripper": 0.0
+    },
+    "west": {
+      "position": [0.07, -0.45, 0.29],
+      "gripper": 0.0
+    },
+    "sud": {
+      "position": [0.4, -0.78, 0.29],
+      "gripper": 0.0
+    },
+    "hold_steps": 30
   }
 ]

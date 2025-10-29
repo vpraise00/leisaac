@@ -19,7 +19,7 @@ from isaaclab.scene import InteractiveSceneCfg
 from isaaclab.utils import configclass
 
 from leisaac.assets.robots.lerobot import SO101_FOLLOWER_CFG
-from leisaac.assets.scenes.desk_lift import DESK_LIFT_CFG, DESK_LIFT_USD_PATH
+from leisaac.assets.scenes.desk_lift import DESK_LIFT_CFG, DESK_LIFT_USD_PATH, DESK_CFG
 from leisaac.devices.action_process import init_action_cfg, preprocess_device_action
 from leisaac.utils.general_assets import parse_usd_and_create_subassets
 
@@ -59,6 +59,8 @@ class LiftDeskQuadArmSceneCfg(InteractiveSceneCfg):
     """Scene configuration for the lift desk task using four arms."""
 
     scene: AssetBaseCfg = DESK_LIFT_CFG.replace(prim_path="{ENV_REGEX_NS}/Scene")
+
+    desk: AssetBaseCfg = DESK_CFG.replace(prim_path="{ENV_REGEX_NS}/Desk")
 
     nord_arm: ArticulationCfg = SO101_FOLLOWER_CFG.replace(prim_path="{ENV_REGEX_NS}/Nord_Robot")
 
@@ -133,13 +135,13 @@ class LiftDeskQuadArmSceneCfg(InteractiveSceneCfg):
     )
 
     top: TiledCameraCfg = TiledCameraCfg(
-        prim_path="{ENV_REGEX_NS}/Nord_Robot/base/top_camera",
-        offset=TiledCameraCfg.OffsetCfg(pos=(0.0, 0.0, 1.0), rot=(0.0, -1.0, 0.0, 0.0), convention="ros"),  # wxyz - looking down from above
+        prim_path="{ENV_REGEX_NS}/TopCamera",
+        offset=TiledCameraCfg.OffsetCfg(pos=(0.4, -0.45, 1.2), rot=(0.0, -1.0, 0.0, 0.0), convention="ros"),  # wxyz - Looking straight down
         data_types=["rgb"],
         spawn=sim_utils.PinholeCameraCfg(
-            focal_length=28.7,
+            focal_length=24.0,
             focus_distance=400.0,
-            horizontal_aperture=28.11,  # For a 75° FOV (assuming square image)
+            horizontal_aperture=20.955,  # For wider FOV to capture all robots
             clipping_range=(0.01, 50.0),
             lock_camera=True
         ),
@@ -173,6 +175,17 @@ class EventCfg:
 
     # reset to default scene
     reset_all = EventTerm(func=mdp.reset_scene_to_default, mode="reset")
+
+    # reset desk position
+    reset_desk = EventTerm(
+        func=mdp.reset_root_state_uniform,
+        mode="reset",
+        params={
+            "pose_range": {"x": (0.0, 0.0), "y": (0.0, 0.0), "z": (0.0, 0.0)},
+            "velocity_range": {},
+            "asset_cfg": SceneEntityCfg("desk"),
+        },
+    )
 
 
 @configclass
@@ -256,20 +269,29 @@ class LiftDeskQuadArmEnvCfg(ManagerBasedRLEnvCfg):
         self.sim.physx.friction_correlation_distance = 0.00625
         self.sim.render.enable_translucency = True
 
-        # Position and orientation for 4 arms per user specification
-        # Position: pos = (x, y, z)
-        # Orientation: euler angles (roll, pitch, yaw) in degrees
-        self.scene.nord_arm.init_state.pos = (0.3, -0.1, 0.01)
-        self.scene.nord_arm.init_state.rot = euler_deg_to_quat(0, 0, 0)  # 0° yaw
+        # Position and orientation for 4 arms in square formation
+        # Square center: (0.4, -0.45), distance between opposite robots: 0.8
+        # Each robot is 0.4 away from center
 
-        self.scene.ost_arm.init_state.pos = (0.6, -0.4, 0.01)
-        self.scene.ost_arm.init_state.rot = euler_deg_to_quat(0, 0, -90)  # -90° yaw
+        # Nord arm (North, +Y direction)
+        self.scene.nord_arm.init_state.pos = (0.4, -0.05, 0.01)
+        self.scene.nord_arm.init_state.rot = euler_deg_to_quat(0, 0, 0)  # 0° yaw, facing inward
 
-        self.scene.west_arm.init_state.pos = (0.053, -0.4, 0.01)
-        self.scene.west_arm.init_state.rot = euler_deg_to_quat(0, 0, 90)  # 90° yaw
+        # Sud arm (South, -Y direction, opposite of Nord)
+        self.scene.sud_arm.init_state.pos = (0.4, -0.85, 0.01)
+        self.scene.sud_arm.init_state.rot = euler_deg_to_quat(0, 0, 180)  # 180° yaw, facing inward
 
-        self.scene.sud_arm.init_state.pos = (0.3, -0.65, 0.01)
-        self.scene.sud_arm.init_state.rot = euler_deg_to_quat(0, 0, 180)  # 180° yaw
+        # Ost arm (East, +X direction)
+        self.scene.ost_arm.init_state.pos = (0.8, -0.45, 0.01)
+        self.scene.ost_arm.init_state.rot = euler_deg_to_quat(0, 0, -90)  # -90° yaw, facing inward
+
+        # West arm (West, -X direction, opposite of Ost)
+        self.scene.west_arm.init_state.pos = (0.0, -0.45, 0.01)
+        self.scene.west_arm.init_state.rot = euler_deg_to_quat(0, 0, 90)  # 90° yaw, facing inward
+
+        # Desk position at center of square
+        self.scene.desk.init_state.pos = (0.4, -0.45, 0.05)
+        self.scene.desk.init_state.rot = (1.0, 0.0, 0.0, 0.0)
 
         parse_usd_and_create_subassets(DESK_LIFT_USD_PATH, self)
 
