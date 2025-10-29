@@ -5,6 +5,7 @@ from typing import Literal
 import isaaclab.utils.math as math_utils
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.sensors import Camera
+from isaaclab.assets import RigidObject
 from isaaclab.envs import ManagerBasedRLEnv
 
 
@@ -45,6 +46,7 @@ def randomize_camera_uniform(
     asset.set_world_poses(positions, orientations, env_ids, convention)
 
 
+<<<<<<< Updated upstream
 def randomize_particle_object_uniform(
     env: ManagerBasedRLEnv,
     env_ids: torch.Tensor,
@@ -72,3 +74,51 @@ def randomize_particle_object_uniform(
     orientations = math_utils.quat_mul(ori_world_quat, orientations_delta)
 
     particle_object.set_world_poses(positions, orientations)
+=======
+def randomize_rigid_object_position_gaussian(
+    env: ManagerBasedRLEnv,
+    env_ids: torch.Tensor,
+    asset_cfg: SceneEntityCfg,
+    position_std: dict[str, float],
+):
+    """Randomize rigid object position with Gaussian noise.
+
+    This function adds Gaussian noise to the object's default position.
+
+    Args:
+        env: The environment instance.
+        env_ids: Environment indices to randomize.
+        asset_cfg: Configuration for the asset to randomize.
+        position_std: Dictionary with standard deviations for each axis (x, y, z).
+                     Keys should be 'x', 'y', 'z'. Missing keys default to 0.0 (no noise).
+
+    Example:
+        position_std={'x': 0.1, 'y': 0.1, 'z': 0.0}  # Randomize x,y with std=0.1, z fixed
+    """
+    asset: RigidObject = env.scene[asset_cfg.name]
+
+    # Get default position from asset configuration
+    default_pos = asset.data.default_root_state[env_ids, :3]
+
+    # Get standard deviations for each axis
+    std_x = position_std.get('x', 0.0)
+    std_y = position_std.get('y', 0.0)
+    std_z = position_std.get('z', 0.0)
+
+    # Generate Gaussian noise
+    noise = torch.randn(len(env_ids), 3, device=asset.device)
+    noise[:, 0] *= std_x
+    noise[:, 1] *= std_y
+    noise[:, 2] *= std_z
+
+    # Apply noise to default position
+    new_positions = default_pos + noise
+
+    # Get current orientation (keep it unchanged)
+    current_orientation = asset.data.default_root_state[env_ids, 3:7]
+
+    # Set new pose
+    asset.write_root_pose_to_sim(
+        torch.cat([new_positions, current_orientation], dim=1), env_ids
+    )
+>>>>>>> Stashed changes

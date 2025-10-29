@@ -15,13 +15,18 @@ SO101_FOLLOWER_CFG = ArticulationCfg(
         usd_path=str(SO101_FOLLOWER_ASSET_PATH),
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             disable_gravity=False,
+            max_depenetration_velocity=10.0,
         ),
         articulation_props=sim_utils.ArticulationRootPropertiesCfg(
-            enabled_self_collisions=True,
-            solver_position_iteration_count=4,
+            enabled_self_collisions=False,  # Disabled to prevent GPU memory overflow in bi-arm scenarios
+            solver_position_iteration_count=8,  # Increase for better collision handling
             solver_velocity_iteration_count=4,
             fix_root_link=True,
         ),
+<<<<<<< Updated upstream
+=======
+        activate_contact_sensors=False,  # Disabled to save GPU memory
+>>>>>>> Stashed changes
     ),
     init_state=ArticulationCfg.InitialStateCfg(
         pos=(2.2, -0.61, 0.89),
