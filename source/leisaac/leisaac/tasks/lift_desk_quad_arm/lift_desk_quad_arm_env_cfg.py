@@ -62,16 +62,16 @@ class LiftDeskQuadArmSceneCfg(InteractiveSceneCfg):
 
     desk: AssetBaseCfg = DESK_CFG.replace(prim_path="{ENV_REGEX_NS}/Desk")
 
-    nord_arm: ArticulationCfg = SO101_FOLLOWER_CFG.replace(prim_path="{ENV_REGEX_NS}/Nord_Robot")
+    north_arm: ArticulationCfg = SO101_FOLLOWER_CFG.replace(prim_path="{ENV_REGEX_NS}/North_Robot")
 
-    ost_arm: ArticulationCfg = SO101_FOLLOWER_CFG.replace(prim_path="{ENV_REGEX_NS}/Ost_Robot")
+    east_arm: ArticulationCfg = SO101_FOLLOWER_CFG.replace(prim_path="{ENV_REGEX_NS}/East_Robot")
 
     west_arm: ArticulationCfg = SO101_FOLLOWER_CFG.replace(prim_path="{ENV_REGEX_NS}/West_Robot")
 
-    sud_arm: ArticulationCfg = SO101_FOLLOWER_CFG.replace(prim_path="{ENV_REGEX_NS}/Sud_Robot")
+    south_arm: ArticulationCfg = SO101_FOLLOWER_CFG.replace(prim_path="{ENV_REGEX_NS}/South_Robot")
 
-    nord_wrist: TiledCameraCfg = TiledCameraCfg(
-        prim_path="{ENV_REGEX_NS}/Nord_Robot/gripper/nord_wrist_camera",
+    north_wrist: TiledCameraCfg = TiledCameraCfg(
+        prim_path="{ENV_REGEX_NS}/North_Robot/gripper/north_wrist_camera",
         offset=TiledCameraCfg.OffsetCfg(pos=(-0.001, 0.1, -0.04), rot=(-0.404379, -0.912179, -0.0451242, 0.0486914), convention="ros"),  # wxyz
         data_types=["rgb"],
         spawn=sim_utils.PinholeCameraCfg(
@@ -86,8 +86,8 @@ class LiftDeskQuadArmSceneCfg(InteractiveSceneCfg):
         update_period=1 / 30.0,  # 30FPS
     )
 
-    ost_wrist: TiledCameraCfg = TiledCameraCfg(
-        prim_path="{ENV_REGEX_NS}/Ost_Robot/gripper/ost_wrist_camera",
+    east_wrist: TiledCameraCfg = TiledCameraCfg(
+        prim_path="{ENV_REGEX_NS}/East_Robot/gripper/east_wrist_camera",
         offset=TiledCameraCfg.OffsetCfg(pos=(-0.001, 0.1, -0.04), rot=(-0.404379, -0.912179, -0.0451242, 0.0486914), convention="ros"),  # wxyz
         data_types=["rgb"],
         spawn=sim_utils.PinholeCameraCfg(
@@ -118,8 +118,8 @@ class LiftDeskQuadArmSceneCfg(InteractiveSceneCfg):
         update_period=1 / 30.0,  # 30FPS
     )
 
-    sud_wrist: TiledCameraCfg = TiledCameraCfg(
-        prim_path="{ENV_REGEX_NS}/Sud_Robot/gripper/sud_wrist_camera",
+    south_wrist: TiledCameraCfg = TiledCameraCfg(
+        prim_path="{ENV_REGEX_NS}/South_Robot/gripper/south_wrist_camera",
         offset=TiledCameraCfg.OffsetCfg(pos=(-0.001, 0.1, -0.04), rot=(-0.404379, -0.912179, -0.0451242, 0.0486914), convention="ros"),  # wxyz
         data_types=["rgb"],
         spawn=sim_utils.PinholeCameraCfg(
@@ -134,14 +134,32 @@ class LiftDeskQuadArmSceneCfg(InteractiveSceneCfg):
         update_period=1 / 30.0,  # 30FPS
     )
 
-    top: TiledCameraCfg = TiledCameraCfg(
-        prim_path="{ENV_REGEX_NS}/TopCamera",
-        offset=TiledCameraCfg.OffsetCfg(pos=(0.4, -0.45, 1.2), rot=(0.0, -1.0, 0.0, 0.0), convention="ros"),  # wxyz - Looking straight down
+    # South top camera - positioned above south robot, looking straight down
+    south_top: TiledCameraCfg = TiledCameraCfg(
+        prim_path="{ENV_REGEX_NS}/SouthTopCamera",
+        offset=TiledCameraCfg.OffsetCfg(pos=(0.4, -0.85, 1.2), rot=(0.0, -1.0, 0.0, 0.0), convention="ros"),  # wxyz - Looking straight down
         data_types=["rgb"],
         spawn=sim_utils.PinholeCameraCfg(
             focal_length=24.0,
             focus_distance=400.0,
-            horizontal_aperture=20.955,  # For wider FOV to capture all robots
+            horizontal_aperture=20.955,  # For wider FOV to capture desk and robots
+            clipping_range=(0.01, 50.0),
+            lock_camera=True
+        ),
+        width=640,
+        height=480,
+        update_period=1 / 30.0,  # 30FPS
+    )
+
+    # North top camera - positioned above north robot, looking straight down
+    north_top: TiledCameraCfg = TiledCameraCfg(
+        prim_path="{ENV_REGEX_NS}/NorthTopCamera",
+        offset=TiledCameraCfg.OffsetCfg(pos=(0.4, -0.05, 1.2), rot=(0.0, -1.0, 0.0, 0.0), convention="ros"),  # wxyz - Looking straight down
+        data_types=["rgb"],
+        spawn=sim_utils.PinholeCameraCfg(
+            focal_length=24.0,
+            focus_distance=400.0,
+            horizontal_aperture=20.955,  # For wider FOV to capture desk and robots
             clipping_range=(0.01, 50.0),
             lock_camera=True
         ),
@@ -159,14 +177,14 @@ class LiftDeskQuadArmSceneCfg(InteractiveSceneCfg):
 @configclass
 class ActionsCfg:
     """Configuration for the actions."""
-    nord_arm_action: mdp.ActionTermCfg = MISSING
-    nord_gripper_action: mdp.ActionTermCfg = MISSING
-    ost_arm_action: mdp.ActionTermCfg = MISSING
-    ost_gripper_action: mdp.ActionTermCfg = MISSING
+    north_arm_action: mdp.ActionTermCfg = MISSING
+    north_gripper_action: mdp.ActionTermCfg = MISSING
+    east_arm_action: mdp.ActionTermCfg = MISSING
+    east_gripper_action: mdp.ActionTermCfg = MISSING
     west_arm_action: mdp.ActionTermCfg = MISSING
     west_gripper_action: mdp.ActionTermCfg = MISSING
-    sud_arm_action: mdp.ActionTermCfg = MISSING
-    sud_gripper_action: mdp.ActionTermCfg = MISSING
+    south_arm_action: mdp.ActionTermCfg = MISSING
+    south_gripper_action: mdp.ActionTermCfg = MISSING
 
 
 @configclass
@@ -196,32 +214,33 @@ class ObservationsCfg:
     class PolicyCfg(ObsGroup):
         """Observations for policy group."""
 
-        nord_joint_pos = ObsTerm(func=mdp.joint_pos, params={"asset_cfg": SceneEntityCfg("nord_arm")})
-        nord_joint_vel = ObsTerm(func=mdp.joint_vel, params={"asset_cfg": SceneEntityCfg("nord_arm")})
-        nord_joint_pos_rel = ObsTerm(func=mdp.joint_pos_rel, params={"asset_cfg": SceneEntityCfg("nord_arm")})
-        nord_joint_vel_rel = ObsTerm(func=mdp.joint_vel_rel, params={"asset_cfg": SceneEntityCfg("nord_arm")})
+        north_joint_pos = ObsTerm(func=mdp.joint_pos, params={"asset_cfg": SceneEntityCfg("north_arm")})
+        north_joint_vel = ObsTerm(func=mdp.joint_vel, params={"asset_cfg": SceneEntityCfg("north_arm")})
+        north_joint_pos_rel = ObsTerm(func=mdp.joint_pos_rel, params={"asset_cfg": SceneEntityCfg("north_arm")})
+        north_joint_vel_rel = ObsTerm(func=mdp.joint_vel_rel, params={"asset_cfg": SceneEntityCfg("north_arm")})
 
-        ost_joint_pos = ObsTerm(func=mdp.joint_pos, params={"asset_cfg": SceneEntityCfg("ost_arm")})
-        ost_joint_vel = ObsTerm(func=mdp.joint_vel, params={"asset_cfg": SceneEntityCfg("ost_arm")})
-        ost_joint_pos_rel = ObsTerm(func=mdp.joint_pos_rel, params={"asset_cfg": SceneEntityCfg("ost_arm")})
-        ost_joint_vel_rel = ObsTerm(func=mdp.joint_vel_rel, params={"asset_cfg": SceneEntityCfg("ost_arm")})
+        east_joint_pos = ObsTerm(func=mdp.joint_pos, params={"asset_cfg": SceneEntityCfg("east_arm")})
+        east_joint_vel = ObsTerm(func=mdp.joint_vel, params={"asset_cfg": SceneEntityCfg("east_arm")})
+        east_joint_pos_rel = ObsTerm(func=mdp.joint_pos_rel, params={"asset_cfg": SceneEntityCfg("east_arm")})
+        east_joint_vel_rel = ObsTerm(func=mdp.joint_vel_rel, params={"asset_cfg": SceneEntityCfg("east_arm")})
 
         west_joint_pos = ObsTerm(func=mdp.joint_pos, params={"asset_cfg": SceneEntityCfg("west_arm")})
         west_joint_vel = ObsTerm(func=mdp.joint_vel, params={"asset_cfg": SceneEntityCfg("west_arm")})
         west_joint_pos_rel = ObsTerm(func=mdp.joint_pos_rel, params={"asset_cfg": SceneEntityCfg("west_arm")})
         west_joint_vel_rel = ObsTerm(func=mdp.joint_vel_rel, params={"asset_cfg": SceneEntityCfg("west_arm")})
 
-        sud_joint_pos = ObsTerm(func=mdp.joint_pos, params={"asset_cfg": SceneEntityCfg("sud_arm")})
-        sud_joint_vel = ObsTerm(func=mdp.joint_vel, params={"asset_cfg": SceneEntityCfg("sud_arm")})
-        sud_joint_pos_rel = ObsTerm(func=mdp.joint_pos_rel, params={"asset_cfg": SceneEntityCfg("sud_arm")})
-        sud_joint_vel_rel = ObsTerm(func=mdp.joint_vel_rel, params={"asset_cfg": SceneEntityCfg("sud_arm")})
+        south_joint_pos = ObsTerm(func=mdp.joint_pos, params={"asset_cfg": SceneEntityCfg("south_arm")})
+        south_joint_vel = ObsTerm(func=mdp.joint_vel, params={"asset_cfg": SceneEntityCfg("south_arm")})
+        south_joint_pos_rel = ObsTerm(func=mdp.joint_pos_rel, params={"asset_cfg": SceneEntityCfg("south_arm")})
+        south_joint_vel_rel = ObsTerm(func=mdp.joint_vel_rel, params={"asset_cfg": SceneEntityCfg("south_arm")})
 
         actions = ObsTerm(func=mdp.last_action)
-        nord = ObsTerm(func=mdp.image, params={"sensor_cfg": SceneEntityCfg("nord_wrist"), "data_type": "rgb", "normalize": False})
-        ost = ObsTerm(func=mdp.image, params={"sensor_cfg": SceneEntityCfg("ost_wrist"), "data_type": "rgb", "normalize": False})
+        north = ObsTerm(func=mdp.image, params={"sensor_cfg": SceneEntityCfg("north_wrist"), "data_type": "rgb", "normalize": False})
+        east = ObsTerm(func=mdp.image, params={"sensor_cfg": SceneEntityCfg("east_wrist"), "data_type": "rgb", "normalize": False})
         west = ObsTerm(func=mdp.image, params={"sensor_cfg": SceneEntityCfg("west_wrist"), "data_type": "rgb", "normalize": False})
-        sud = ObsTerm(func=mdp.image, params={"sensor_cfg": SceneEntityCfg("sud_wrist"), "data_type": "rgb", "normalize": False})
-        top = ObsTerm(func=mdp.image, params={"sensor_cfg": SceneEntityCfg("top"), "data_type": "rgb", "normalize": False})
+        south = ObsTerm(func=mdp.image, params={"sensor_cfg": SceneEntityCfg("south_wrist"), "data_type": "rgb", "normalize": False})
+        south_top = ObsTerm(func=mdp.image, params={"sensor_cfg": SceneEntityCfg("south_top"), "data_type": "rgb", "normalize": False})
+        north_top = ObsTerm(func=mdp.image, params={"sensor_cfg": SceneEntityCfg("north_top"), "data_type": "rgb", "normalize": False})
 
         def __post_init__(self):
             self.enable_corruption = True
@@ -267,25 +286,27 @@ class LiftDeskQuadArmEnvCfg(ManagerBasedRLEnvCfg):
 
         self.sim.physx.bounce_threshold_velocity = 0.01
         self.sim.physx.friction_correlation_distance = 0.00625
+        self.sim.physx.friction_offset_threshold = 0.001  # Lower threshold for better friction
+        self.sim.physx.enable_stabilization = True  # Improve contact stability
         self.sim.render.enable_translucency = True
 
         # Position and orientation for 4 arms in square formation
         # Square center: (0.4, -0.45), distance between opposite robots: 0.8
         # Each robot is 0.4 away from center
 
-        # Nord arm (North, +Y direction)
-        self.scene.nord_arm.init_state.pos = (0.4, -0.05, 0.01)
-        self.scene.nord_arm.init_state.rot = euler_deg_to_quat(0, 0, 0)  # 0° yaw, facing inward
+        # North arm (North, +Y direction)
+        self.scene.north_arm.init_state.pos = (0.4, -0.05, 0.01)
+        self.scene.north_arm.init_state.rot = euler_deg_to_quat(0, 0, 0)  # 0° yaw, facing inward
 
-        # Sud arm (South, -Y direction, opposite of Nord)
-        self.scene.sud_arm.init_state.pos = (0.4, -0.85, 0.01)
-        self.scene.sud_arm.init_state.rot = euler_deg_to_quat(0, 0, 180)  # 180° yaw, facing inward
+        # South arm (South, -Y direction, opposite of North)
+        self.scene.south_arm.init_state.pos = (0.4, -0.85, 0.01)
+        self.scene.south_arm.init_state.rot = euler_deg_to_quat(0, 0, 180)  # 180° yaw, facing inward
 
-        # Ost arm (East, +X direction)
-        self.scene.ost_arm.init_state.pos = (0.8, -0.45, 0.01)
-        self.scene.ost_arm.init_state.rot = euler_deg_to_quat(0, 0, -90)  # -90° yaw, facing inward
+        # East arm (East, +X direction)
+        self.scene.east_arm.init_state.pos = (0.8, -0.45, 0.01)
+        self.scene.east_arm.init_state.rot = euler_deg_to_quat(0, 0, -90)  # -90° yaw, facing inward
 
-        # West arm (West, -X direction, opposite of Ost)
+        # West arm (West, -X direction, opposite of East)
         self.scene.west_arm.init_state.pos = (0.0, -0.45, 0.01)
         self.scene.west_arm.init_state.rot = euler_deg_to_quat(0, 0, 90)  # 90° yaw, facing inward
 

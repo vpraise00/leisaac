@@ -32,6 +32,8 @@ parser.add_argument("--interp_gain", type=float, default=0.3, help="Joint interp
 parser.add_argument("--command_type", type=str, default="position", choices=["position", "pose"], help="IK command type (only for dik).")
 parser.add_argument("--force_wrist_down", action="store_true", default=False, help="Force wrist_flex joint to point downward.")
 parser.add_argument("--wrist_flex_angle", type=float, default=1.57, help="Target angle for wrist_flex joint in radians (default: 1.57 = 90 deg).")
+parser.add_argument("--wrist_flex_min", type=float, default=None, help="Minimum allowed wrist_flex angle in radians (boundary constraint).")
+parser.add_argument("--wrist_flex_max", type=float, default=None, help="Maximum allowed wrist_flex angle in radians (boundary constraint).")
 
 # Recording parameters
 parser.add_argument("--record", action="store_true", default=False, help="Enable data recording.")
@@ -136,10 +138,10 @@ def main():
     print("[DataCollection] Waypoint sequence:")
     for idx, wp in enumerate(waypoints, 1):
         print(f"  Waypoint {idx}:")
-        print(f"    Nord:  pos=({wp.nord_world_pose[0, 0]:.3f}, {wp.nord_world_pose[0, 1]:.3f}, {wp.nord_world_pose[0, 2]:.3f}), gripper={wp.nord_gripper:.2f}")
-        print(f"    Ost:   pos=({wp.ost_world_pose[0, 0]:.3f}, {wp.ost_world_pose[0, 1]:.3f}, {wp.ost_world_pose[0, 2]:.3f}), gripper={wp.ost_gripper:.2f}")
+        print(f"    North:  pos=({wp.north_world_pose[0, 0]:.3f}, {wp.north_world_pose[0, 1]:.3f}, {wp.north_world_pose[0, 2]:.3f}), gripper={wp.north_gripper:.2f}")
+        print(f"    East:   pos=({wp.east_world_pose[0, 0]:.3f}, {wp.east_world_pose[0, 1]:.3f}, {wp.east_world_pose[0, 2]:.3f}), gripper={wp.east_gripper:.2f}")
         print(f"    West:  pos=({wp.west_world_pose[0, 0]:.3f}, {wp.west_world_pose[0, 1]:.3f}, {wp.west_world_pose[0, 2]:.3f}), gripper={wp.west_gripper:.2f}")
-        print(f"    Sud:   pos=({wp.sud_world_pose[0, 0]:.3f}, {wp.sud_world_pose[0, 1]:.3f}, {wp.sud_world_pose[0, 2]:.3f}), gripper={wp.sud_gripper:.2f}")
+        print(f"    South:   pos=({wp.south_world_pose[0, 0]:.3f}, {wp.south_world_pose[0, 1]:.3f}, {wp.south_world_pose[0, 2]:.3f}), gripper={wp.south_gripper:.2f}")
         print(f"    Hold steps: {wp.hold_steps}")
     print()
 
@@ -154,6 +156,8 @@ def main():
         interp_gain=args_cli.interp_gain,
         force_wrist_down=args_cli.force_wrist_down,
         wrist_flex_angle=args_cli.wrist_flex_angle,
+        wrist_flex_min=args_cli.wrist_flex_min,
+        wrist_flex_max=args_cli.wrist_flex_max,
     )
 
     print("[DataCollection] Controller initialized.")
@@ -189,8 +193,20 @@ def main():
     episode_start_time = time.time()
     current_waypoint_index = 0
     controller.reset()
+
+    # Print initial waypoint info
+    first_wp = waypoints[current_waypoint_index]
+    print(f"\n{'='*70}")
+    print(f"[WaypointRunner] Starting Waypoint 1/{len(waypoints)}")
+    print(f"{'='*70}")
+    print(f"  North Target: ({first_wp.north_world_pose[0, 0]:.3f}, {first_wp.north_world_pose[0, 1]:.3f}, {first_wp.north_world_pose[0, 2]:.3f}), gripper={first_wp.north_gripper:.2f}")
+    print(f"  East  Target: ({first_wp.east_world_pose[0, 0]:.3f}, {first_wp.east_world_pose[0, 1]:.3f}, {first_wp.east_world_pose[0, 2]:.3f}), gripper={first_wp.east_gripper:.2f}")
+    print(f"  West  Target: ({first_wp.west_world_pose[0, 0]:.3f}, {first_wp.west_world_pose[0, 1]:.3f}, {first_wp.west_world_pose[0, 2]:.3f}), gripper={first_wp.west_gripper:.2f}")
+    print(f"  South Target: ({first_wp.south_world_pose[0, 0]:.3f}, {first_wp.south_world_pose[0, 1]:.3f}, {first_wp.south_world_pose[0, 2]:.3f}), gripper={first_wp.south_gripper:.2f}")
+    print(f"  Hold steps: {args_cli.hold_steps if args_cli.hold_steps else first_wp.hold_steps}")
+    print(f"{'='*70}\n")
+
     controller.set_waypoint(waypoints[current_waypoint_index], hold_steps_override=args_cli.hold_steps)
-    print(f"  → Waypoint 1/{len(waypoints)}")
 
     # Main loop
     while simulation_app.is_running():
@@ -235,8 +251,20 @@ def main():
                         current_waypoint_index = 0
                         episode_end_wait_time = None
                         controller.reset()
+
+                        # Print initial waypoint info (next episode)
+                        first_wp = waypoints[current_waypoint_index]
+                        print(f"\n{'='*70}")
+                        print(f"[WaypointRunner] Starting Waypoint 1/{len(waypoints)}")
+                        print(f"{'='*70}")
+                        print(f"  North Target: ({first_wp.north_world_pose[0, 0]:.3f}, {first_wp.north_world_pose[0, 1]:.3f}, {first_wp.north_world_pose[0, 2]:.3f}), gripper={first_wp.north_gripper:.2f}")
+                        print(f"  East  Target: ({first_wp.east_world_pose[0, 0]:.3f}, {first_wp.east_world_pose[0, 1]:.3f}, {first_wp.east_world_pose[0, 2]:.3f}), gripper={first_wp.east_gripper:.2f}")
+                        print(f"  West  Target: ({first_wp.west_world_pose[0, 0]:.3f}, {first_wp.west_world_pose[0, 1]:.3f}, {first_wp.west_world_pose[0, 2]:.3f}), gripper={first_wp.west_gripper:.2f}")
+                        print(f"  South Target: ({first_wp.south_world_pose[0, 0]:.3f}, {first_wp.south_world_pose[0, 1]:.3f}, {first_wp.south_world_pose[0, 2]:.3f}), gripper={first_wp.south_gripper:.2f}")
+                        print(f"  Hold steps: {args_cli.hold_steps if args_cli.hold_steps else first_wp.hold_steps}")
+                        print(f"{'='*70}\n")
+
                         controller.set_waypoint(waypoints[current_waypoint_index], hold_steps_override=args_cli.hold_steps)
-                        print(f"  → Waypoint 1/{len(waypoints)}")
 
                         # Reset success termination
                         env.termination_manager.set_term_cfg(
@@ -260,8 +288,20 @@ def main():
                         current_waypoint_index = 0
                         episode_end_wait_time = None
                         controller.reset()
+
+                        # Print initial waypoint info (playback restart)
+                        first_wp = waypoints[current_waypoint_index]
+                        print(f"\n{'='*70}")
+                        print(f"[WaypointRunner] Starting Waypoint 1/{len(waypoints)}")
+                        print(f"{'='*70}")
+                        print(f"  North Target: ({first_wp.north_world_pose[0, 0]:.3f}, {first_wp.north_world_pose[0, 1]:.3f}, {first_wp.north_world_pose[0, 2]:.3f}), gripper={first_wp.north_gripper:.2f}")
+                        print(f"  East  Target: ({first_wp.east_world_pose[0, 0]:.3f}, {first_wp.east_world_pose[0, 1]:.3f}, {first_wp.east_world_pose[0, 2]:.3f}), gripper={first_wp.east_gripper:.2f}")
+                        print(f"  West  Target: ({first_wp.west_world_pose[0, 0]:.3f}, {first_wp.west_world_pose[0, 1]:.3f}, {first_wp.west_world_pose[0, 2]:.3f}), gripper={first_wp.west_gripper:.2f}")
+                        print(f"  South Target: ({first_wp.south_world_pose[0, 0]:.3f}, {first_wp.south_world_pose[0, 1]:.3f}, {first_wp.south_world_pose[0, 2]:.3f}), gripper={first_wp.south_gripper:.2f}")
+                        print(f"  Hold steps: {args_cli.hold_steps if args_cli.hold_steps else first_wp.hold_steps}")
+                        print(f"{'='*70}\n")
+
                         controller.set_waypoint(waypoints[current_waypoint_index], hold_steps_override=args_cli.hold_steps)
-                        print(f"  → Waypoint 1/{len(waypoints)}")
                 else:
                     # Still waiting, just sleep
                     rate_limiter.sleep(env)
@@ -288,8 +328,20 @@ def main():
                     current_waypoint_index = 0
                     episode_end_wait_time = None
                     controller.reset()
+
+                    # Print initial waypoint info (timeout restart)
+                    first_wp = waypoints[current_waypoint_index]
+                    print(f"\n{'='*70}")
+                    print(f"[WaypointRunner] Starting Waypoint 1/{len(waypoints)}")
+                    print(f"{'='*70}")
+                    print(f"  North Target: ({first_wp.north_world_pose[0, 0]:.3f}, {first_wp.north_world_pose[0, 1]:.3f}, {first_wp.north_world_pose[0, 2]:.3f}), gripper={first_wp.north_gripper:.2f}")
+                    print(f"  East  Target: ({first_wp.east_world_pose[0, 0]:.3f}, {first_wp.east_world_pose[0, 1]:.3f}, {first_wp.east_world_pose[0, 2]:.3f}), gripper={first_wp.east_gripper:.2f}")
+                    print(f"  West  Target: ({first_wp.west_world_pose[0, 0]:.3f}, {first_wp.west_world_pose[0, 1]:.3f}, {first_wp.west_world_pose[0, 2]:.3f}), gripper={first_wp.west_gripper:.2f}")
+                    print(f"  South Target: ({first_wp.south_world_pose[0, 0]:.3f}, {first_wp.south_world_pose[0, 1]:.3f}, {first_wp.south_world_pose[0, 2]:.3f}), gripper={first_wp.south_gripper:.2f}")
+                    print(f"  Hold steps: {args_cli.hold_steps if args_cli.hold_steps else first_wp.hold_steps}")
+                    print(f"{'='*70}\n")
+
                     controller.set_waypoint(waypoints[current_waypoint_index], hold_steps_override=args_cli.hold_steps)
-                    print(f"  → Waypoint 1/{len(waypoints)}")
                     rate_limiter.sleep(env)
                     continue
 
@@ -299,6 +351,10 @@ def main():
 
                 if converged:
                     # Move to next waypoint
+                    print(f"\n{'='*70}")
+                    print(f"[WaypointRunner] Waypoint {current_waypoint_index + 1}/{len(waypoints)} COMPLETED!")
+                    print(f"{'='*70}\n")
+
                     current_waypoint_index += 1
 
                     if current_waypoint_index >= len(waypoints):
@@ -308,7 +364,16 @@ def main():
                         episode_running = False
                     else:
                         # Next waypoint
-                        print(f"  → Waypoint {current_waypoint_index + 1}/{len(waypoints)}")
+                        next_wp = waypoints[current_waypoint_index]
+                        print(f"{'='*70}")
+                        print(f"[WaypointRunner] Moving to Waypoint {current_waypoint_index + 1}/{len(waypoints)}")
+                        print(f"{'='*70}")
+                        print(f"  North Target: ({next_wp.north_world_pose[0, 0]:.3f}, {next_wp.north_world_pose[0, 1]:.3f}, {next_wp.north_world_pose[0, 2]:.3f}), gripper={next_wp.north_gripper:.2f}")
+                        print(f"  East  Target: ({next_wp.east_world_pose[0, 0]:.3f}, {next_wp.east_world_pose[0, 1]:.3f}, {next_wp.east_world_pose[0, 2]:.3f}), gripper={next_wp.east_gripper:.2f}")
+                        print(f"  West  Target: ({next_wp.west_world_pose[0, 0]:.3f}, {next_wp.west_world_pose[0, 1]:.3f}, {next_wp.west_world_pose[0, 2]:.3f}), gripper={next_wp.west_gripper:.2f}")
+                        print(f"  South Target: ({next_wp.south_world_pose[0, 0]:.3f}, {next_wp.south_world_pose[0, 1]:.3f}, {next_wp.south_world_pose[0, 2]:.3f}), gripper={next_wp.south_gripper:.2f}")
+                        print(f"  Hold steps: {args_cli.hold_steps if args_cli.hold_steps else next_wp.hold_steps}")
+                        print(f"{'='*70}\n")
                         controller.set_waypoint(waypoints[current_waypoint_index], hold_steps_override=args_cli.hold_steps)
 
             rate_limiter.sleep(env)

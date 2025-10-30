@@ -25,8 +25,10 @@ DESK_CFG = RigidObjectCfg(
             disable_gravity=False,
             max_depenetration_velocity=10.0,
             kinematic_enabled=False,
-            linear_damping=0.2,
-            angular_damping=0.2,
+            linear_damping=0.5,  # Increased from 0.2 to reduce oscillation
+            angular_damping=0.5,  # Increased from 0.2 to reduce oscillation
+            max_linear_velocity=5.0,  # Limit velocity to prevent instability
+            max_angular_velocity=5.0,
         ),
         mass_props=sim_utils.MassPropertiesCfg(
             mass=0.0001,  # 50g - very light desk
