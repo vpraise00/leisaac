@@ -2,12 +2,19 @@ import torch
 import warnings
 
 from abc import ABC, abstractmethod
-from io import BytesIO
+from typing import Dict, Optional, Tuple
 
 try:
     import zmq
 except ImportError:
     warnings.warn("zmq is not installed, please install it with `pip install pyzmq` for full functionality of ZMQServicePolicy", ImportWarning)
+try:
+    import websockets.sync.client
+except ImportError:
+    warnings.warn("websockets is not installed, please install it with `pip install websockets` for full functionality of WebsocketServicePolicy", ImportWarning)
+
+from .gr00t import serialization
+from .openpi import msgpack_numpy
 
 
 class Policy(ABC):
@@ -30,20 +37,6 @@ class CheckpointPolicy(Policy):
 
     def get_action(self, *args, **kwargs) -> torch.Tensor:
         pass
-
-
-class TorchSerializer:
-    @staticmethod
-    def to_bytes(data: dict) -> bytes:
-        buffer = BytesIO()
-        torch.save(data, buffer)
-        return buffer.getvalue()
-
-    @staticmethod
-    def from_bytes(data: bytes) -> dict:
-        buffer = BytesIO(data)
-        obj = torch.load(buffer, weights_only=False)
-        return obj
 
 
 class ZMQServicePolicy(Policy):
@@ -93,13 +86,46 @@ class ZMQServicePolicy(Policy):
         if requires_input:
             request["data"] = data
 
-        self.socket.send(TorchSerializer.to_bytes(request))
+        self.socket.send(serialization.MsgSerializer.to_bytes(request))
         message = self.socket.recv()
         if message == b"ERROR":
             raise RuntimeError("Server error")
-        return TorchSerializer.from_bytes(message)
+        return serialization.MsgSerializer.from_bytes(message)
 
     def __del__(self):
         """Cleanup resources on destruction"""
         self.socket.close()
         self.context.term()
+
+
+class WebsocketServicePolicy(Policy):
+    def __init__(self, host: str, port: Optional[int] = None, timeout_ms: int = 5000, api_key: Optional[str] = None):
+        super().__init__("service")
+        self._uri = f"ws://{host}"
+        if port is not None:
+            self._uri += f":{port}"
+        self._packer = msgpack_numpy.Packer()
+        self._timeout_ms = timeout_ms
+        self._api_key = api_key
+        self._ws, self._server_metadata = self._wait_for_server()
+
+    def _wait_for_server(self) -> Tuple[websockets.sync.client.ClientConnection, Dict]:
+        print(f"Waiting for server at {self._uri}...")
+        try:
+            headers = {"Authorization": f"Api-Key {self._api_key}"} if self._api_key else None
+            conn = websockets.sync.client.connect(
+                self._uri, compression=None, max_size=None, additional_headers=headers
+            )
+            metadata = msgpack_numpy.unpackb(conn.recv())
+            return conn, metadata
+        except ConnectionRefusedError:
+            raise RuntimeError("Failed to connect to policy server.")
+
+    def infer(self, obs: Dict) -> Dict:  # noqa: UP006
+        data = self._packer.pack(obs)
+        self._ws.send(data)
+        response = self._ws.recv()
+        if isinstance(response, str):
+            # we're expecting bytes; if the server sends a string, it's an error.
+            raise RuntimeError(f"Error in inference server:\n{response}")
+        return msgpack_numpy.unpackb(response)

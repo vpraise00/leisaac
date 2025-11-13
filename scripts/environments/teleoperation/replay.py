@@ -16,6 +16,7 @@ parser.add_argument("--step_hz", type=int, default=60, help="Environment steppin
 parser.add_argument("--dataset_file", type=str, default="./datasets/dataset.hdf5", help="File path to load recorded demos.")
 parser.add_argument("--replay_mode", type=str, default="action", choices=["action", "state"], help="Replay mode, action: replay the action, state: replay the state.")
 parser.add_argument("--select_episodes", type=int, nargs="+", default=[], help="A list of episode indices to replayed. Keep empty to replay all episodes.")
+parser.add_argument("--task_type", type=str, default=None, help="Specify task type. If your dataset is recorded with keyboard, you should set it to 'keyboard', otherwise not to set it and keep default value None.")
 
 # append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
@@ -34,7 +35,7 @@ import torch
 import gymnasium as gym
 import contextlib
 
-from isaaclab.envs import ManagerBasedRLEnv
+from isaaclab.envs import ManagerBasedRLEnv, DirectRLEnv
 from isaaclab_tasks.utils import parse_env_cfg
 from isaaclab.utils.datasets import HDF5DatasetFileHandler, EpisodeData
 
@@ -106,15 +107,21 @@ def main():
     num_envs = args_cli.num_envs
 
     env_cfg = parse_env_cfg(args_cli.task, device=args_cli.device, num_envs=num_envs)
-    task_type = get_task_type(args_cli.task)
+    task_type = get_task_type(args_cli.task, args_cli.task_type)
     env_cfg.use_teleop_device(task_type)
 
     # Disable all recorders and terminations
-    env_cfg.recorders = {}
-    env_cfg.terminations = {}
+    is_direct_env = "Direct" in args_cli.task
+    if is_direct_env:
+        env_cfg.never_time_out = True
+        env_cfg.manual_terminate = True
+        env_cfg.recorders = {}
+    else:
+        env_cfg.recorders = {}
+        env_cfg.terminations = {}
 
     # create environment from loaded config
-    env: ManagerBasedRLEnv = gym.make(args_cli.task, cfg=env_cfg).unwrapped
+    env: ManagerBasedRLEnv | DirectRLEnv = gym.make(args_cli.task, cfg=env_cfg).unwrapped
 
     # Get idle action (idle actions are applied to envs without next action)
     if hasattr(env_cfg, "idle_action"):
@@ -123,6 +130,8 @@ def main():
         idle_action = torch.zeros(env.action_space.shape)
 
     # reset before starting
+    if hasattr(env, "initialize"):
+        env.initialize()
     env.reset()
 
     rate_limiter = RateLimiter(args_cli.step_hz)
@@ -167,7 +176,8 @@ def main():
                         has_next_action = True
                     actions[env_id] = env_next_action
                 if args_cli.replay_mode == "action":
-                    dynamic_reset_gripper_effort_limit_sim(env, task_type)
+                    if env.cfg.dynamic_reset_gripper_effort_limit:
+                        dynamic_reset_gripper_effort_limit_sim(env, task_type)
                 env.step(actions)
                 rate_limiter.sleep(env)
             break

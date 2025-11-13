@@ -26,6 +26,7 @@ parser.add_argument(
     default="./datasets/dataset_annotated.hdf5",
     help="File name of the annotated output dataset file.",
 )
+parser.add_argument("--task_type", type=str, default=None, help="Specify task type. If your dataset is recorded with keyboard, you should set it to 'keyboard', otherwise not to set it and keep default value None.")
 parser.add_argument("--auto", action="store_true", default=False, help="Automatically annotate subtasks.")
 parser.add_argument(
     "--enable_pinocchio",
@@ -179,7 +180,8 @@ def main():
         raise ValueError("Task/env name was not specified nor found in the dataset.")
 
     env_cfg = parse_env_cfg(env_name, device=args_cli.device, num_envs=1)
-    task_type = get_task_type(args_cli.task)
+    task_type = get_task_type(args_cli.task, args_cli.task_type)
+    setattr(env_cfg, 'task_type', task_type)
 
     env_cfg.env_name = env_name
 
@@ -319,7 +321,8 @@ def replay_episode(
                     return False
                 continue
         action_tensor = torch.Tensor(action).reshape([1, action.shape[0]])
-        dynamic_reset_gripper_effort_limit_sim(env, task_type)
+        if env.cfg.dynamic_reset_gripper_effort_limit:
+            dynamic_reset_gripper_effort_limit_sim(env, task_type)
         env.step(torch.Tensor(action_tensor))
     if success_term is not None:
         if not bool(success_term.func(env, **success_term.params)[0]):

@@ -1,5 +1,4 @@
 import torch
-import math
 
 
 def dynamic_reset_gripper_effort_limit_sim(env, teleop_device):
@@ -54,11 +53,18 @@ def write_gripper_effort_limit_sim(env, env_arm):
         )
 
 
-def get_task_type(task: str) -> str:
+def get_task_type(task: str, task_type: str | None = None) -> str:
     """
     Make sure the task type is in the supported teleop devices.
     """
+    if task_type is not None:
+        return task_type
     if "BiArm" in task:
         return "bi-so101leader"
     else:
         return "so101leader"
+
+
+def delete_attribute(obj, attr_name):
+    if hasattr(obj, attr_name):
+        delattr(obj, attr_name)

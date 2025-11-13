@@ -110,7 +110,7 @@ BI_ARM_FEATURES = {
         ]
 
     },
-    "observation.images.left": {
+    "observation.images.left_wrist": {
         "dtype": "video",
         "shape": [480, 640, 3],
         "names": ["height", "width", "channels"],
@@ -140,7 +140,7 @@ BI_ARM_FEATURES = {
             "has_audio": False,
         },
     },
-    "observation.images.right": {
+    "observation.images.right_wrist": {
         "dtype": "video",
         "shape": [480, 640, 3],
         "names": ["height", "width", "channels"],
@@ -229,8 +229,8 @@ def process_bi_arm_data(dataset: LeRobotDataset, task: str, demo_group: h5py.Gro
         actions = np.array(demo_group['actions'])
         left_joint_pos = np.array(demo_group['obs/left_joint_pos'])
         right_joint_pos = np.array(demo_group['obs/right_joint_pos'])
-        left_images = np.array(demo_group['obs/left'])
-        right_images = np.array(demo_group['obs/right'])
+        left_images = np.array(demo_group['obs/left_wrist'])
+        right_images = np.array(demo_group['obs/right_wrist'])
         top_images = np.array(demo_group['obs/top'])
     except KeyError:
         print(f'Demo {demo_name} is not valid, skip it')
@@ -250,12 +250,11 @@ def process_bi_arm_data(dataset: LeRobotDataset, task: str, demo_group: h5py.Gro
     # skip the first 5 frames
     for frame_index in tqdm(range(5, total_state_frames), desc='Processing each frame'):
         frame = {
-            "observation.images.left": left_images[frame_index],
-            "observation.images.right": right_images[frame_index],
-            "observation.images.top": top_images[frame_index],
-            "observation.state": np.concatenate([left_joint_pos[frame_index], right_joint_pos[frame_index]]),
             "action": actions[frame_index],
-            "task": task,
+            "observation.state": np.concatenate([left_joint_pos[frame_index], right_joint_pos[frame_index]]),
+            "observation.images.left_wrist": left_images[frame_index],
+            "observation.images.top": top_images[frame_index],
+            "observation.images.right_wrist": right_images[frame_index],
         }
         dataset.add_frame(frame)
 

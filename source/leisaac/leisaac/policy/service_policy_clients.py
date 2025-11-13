@@ -4,10 +4,11 @@ import grpc
 import time
 import numpy as np
 
-from .base import ZMQServicePolicy, Policy
+from .base import ZMQServicePolicy, Policy, WebsocketServicePolicy
 from .lerobot.transport import services_pb2_grpc, services_pb2
 from .lerobot.transport.utils import grpc_channel_options, send_bytes_in_chunks
 from .lerobot.helpers import RemotePolicyConfig, TimedObservation
+from .openpi import image_tools
 
 from leisaac.utils.robot_utils import convert_leisaac_action_to_lerobot, convert_lerobot_action_to_leisaac
 from leisaac.utils.constant import SINGLE_ARM_JOINT_NAMES
@@ -16,7 +17,7 @@ from leisaac.utils.constant import SINGLE_ARM_JOINT_NAMES
 class Gr00tServicePolicyClient(ZMQServicePolicy):
     """
     Service policy client for GR00T N1.5: https://github.com/NVIDIA/Isaac-GR00T
-    Target Commit: https://github.com/NVIDIA/Isaac-GR00T/commit/4ea96a16b15cfdbbd787b6b4f519a12687281330
+    Target Commit: https://github.com/NVIDIA/Isaac-GR00T/commit/b211007ed6698e6642d2fd7679dabab1d97e9e6c
     """
 
     def __init__(
@@ -274,56 +275,63 @@ class LeRobotServicePolicyClient(Policy):
 
         return torch.from_numpy(concat_action[:, None, :])
 
-    def _infer_policy_image_keys(self, pretrained_name_or_path: str) -> list[str]:
-        keys: list[str] = []
-        try:
-            import os
-            import json
-            if os.path.isdir(pretrained_name_or_path):
-                cfg_path = os.path.join(pretrained_name_or_path, "config.json")
-                if not os.path.isfile(cfg_path):
-                    return keys
-            else:
-                from huggingface_hub import hf_hub_download  # type: ignore
-                cfg_path = hf_hub_download(
-                    repo_id=pretrained_name_or_path,
-                    filename="config.json",
-                )
-            with open(cfg_path, "r", encoding="utf-8") as f:
-                config = json.load(f)
-            for key, ft in config.get("input_features", {}).items():
-                if ft.get("type") == "VISUAL":
-                    keys.append(key)
-        except Exception as exc:  # pragma: no cover - best-effort fallback
-            print(f"[LeRobotServicePolicyClient] Unable to infer policy image keys: {exc}")
-        return keys
 
-    def _resolve_policy_camera_key(
+class OpenPIServicePolicyClient(WebsocketServicePolicy):
+    """
+    Service policy client for OpenPI: https://github.com/Physical-Intelligence/openpi
+    Target Commit: https://github.com/Physical-Intelligence/openpi/commit/5bff19b0c0c447c7a7eaaaccf03f36d50998ec9d
+    Reference: https://github.com/EverNorif/openpi/tree/lerobot-v0.3.3
+    """
+
+    def __init__(
         self,
-        policy_key: str,
-        camera_infos: dict[str, tuple[int, int, int]],
-    ) -> str | None:
-        if not camera_infos:
-            return None
-        candidate_keys = list(camera_infos.keys())
-        if policy_key.startswith("observation.images."):
-            target = policy_key[len("observation.images.") :]
-            if target in camera_infos:
-                return target
-            # heuristic fallbacks
-            if target.lower() == "top":
-                if "top" in camera_infos:
-                    return "top"
-                if "wrist" in camera_infos:
-                    return "wrist"
-                if "front" in camera_infos:
-                    return "front"
-            if target.lower() == "wrist" and "wrist" not in camera_infos and candidate_keys:
-                return candidate_keys[0]
-            if candidate_keys:
-                return candidate_keys[0]
-        elif policy_key == "observation.image":
-            return candidate_keys[0]
-        else:
-            return candidate_keys[0]
-        return None
+        host: str = "localhost",
+        port: int = 8000,
+        camera_keys: list[str] = ['front', 'wrist'],
+        task_type: str = "so101leader",
+        api_key: str = None,
+    ):
+        """
+        Args:
+            host: Host of the policy server.
+            port: Port of the policy server.
+            camera_keys: Keys of the cameras.
+            task_type: Type of task.
+            api_key: API key of the policy server.
+        """
+        super().__init__(host=host, port=port, api_key=api_key)
+        self.camera_keys = camera_keys
+        self.task_type = task_type
+
+    def get_action(self, observation_dict: dict) -> torch.Tensor:
+        obs_dict = {
+            f"images/{key}": image_tools.convert_to_uint8(
+                image_tools.resize_with_pad(observation_dict[key].cpu().squeeze().numpy(), 224, 224)) for key in self.camera_keys}
+
+        if self.task_type == 'so101leader':
+            joint_pos = convert_leisaac_action_to_lerobot(observation_dict["joint_pos"])
+            obs_dict['state'] = joint_pos.squeeze().astype(np.float64)
+        # TODO: add bi-arm support
+
+        obs_dict["prompt"] = observation_dict["task_description"]
+
+        """
+            Example of obs_dict for single arm task:
+            obs_dict = {
+                "images/front": np.zeros((224, 224, 3), dtype=np.uint8),
+                "images/wrist": np.zeros((224, 224, 3), dtype=np.uint8),
+                "state": np.zeros(6),
+                "prompt": observation_dict["task_description"],
+            }
+        """
+
+        # get the action chunk via the policy server
+        action_chunk = self.infer(obs_dict)['actions']
+
+        """
+            Example of action_chunk for single arm task:
+            action_chunk: np.zeros((10, 6))
+        """
+        processed_action = convert_lerobot_action_to_leisaac(action_chunk)
+
+        return torch.from_numpy(processed_action[:, None, :])
