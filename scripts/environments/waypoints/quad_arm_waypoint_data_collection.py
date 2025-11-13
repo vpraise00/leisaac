@@ -11,6 +11,9 @@ if multiprocessing.get_start_method() != "spawn":
     multiprocessing.set_start_method("spawn", force=True)
 
 import argparse
+import sys
+from pathlib import Path
+
 from isaaclab.app import AppLauncher
 
 # add argparse arguments
@@ -50,6 +53,16 @@ if args_cli.num_envs != 1:
 
 app_launcher = AppLauncher(vars(args_cli))
 simulation_app = app_launcher.app
+
+try:
+    REPO_ROOT = Path(__file__).resolve().parents[3]
+except IndexError:
+    REPO_ROOT = Path(__file__).resolve().parent
+PACKAGE_DIR = REPO_ROOT / "source" / "leisaac"
+if PACKAGE_DIR.is_dir():
+    package_path_str = str(PACKAGE_DIR)
+    if package_path_str not in sys.path:
+        sys.path.insert(0, package_path_str)
 
 import os
 import time

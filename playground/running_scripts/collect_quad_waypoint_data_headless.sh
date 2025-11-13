@@ -8,12 +8,38 @@ REPO_ROOT="$( cd "$SCRIPT_DIR/../.." && pwd )"
 # Change to repository root
 cd "$REPO_ROOT"
 
-# Check if Python is available
-if ! command -v python &> /dev/null; then
-    echo "ERROR: Python is not available!"
+# Ensure repo sources are importable without installation
+SOURCE_PATH="$REPO_ROOT/source"
+if [ -d "$SOURCE_PATH" ]; then
+    export PYTHONPATH="$SOURCE_PATH:$PYTHONPATH"
+fi
+
+# Resolve a Python interpreter (supporting docker + conda flows)
+POSSIBLE_PYTHONS=()
+if [ -n "$PYTHON_BIN" ]; then
+    POSSIBLE_PYTHONS+=("$PYTHON_BIN")
+else
+    POSSIBLE_PYTHONS+=("/workspace/isaaclab/_isaac_sim/python.sh" "python" "python3")
+fi
+
+PYTHON_BIN=""
+for candidate in "${POSSIBLE_PYTHONS[@]}"; do
+    if [ -x "$candidate" ]; then
+        PYTHON_BIN="$candidate"
+        break
+    fi
+    RESOLVED_PATH="$(command -v "$candidate" 2>/dev/null || true)"
+    if [ -n "$RESOLVED_PATH" ] && [ -x "$RESOLVED_PATH" ]; then
+        PYTHON_BIN="$RESOLVED_PATH"
+        break
+    fi
+done
+
+if [ -z "$PYTHON_BIN" ]; then
+    echo "ERROR: No Python interpreter is available!"
     echo "Please ensure you are in the correct environment:"
     echo "  - For conda: conda activate leisaac"
-    echo "  - For docker: source the Isaac Sim environment"
+    echo "  - For docker: source the Isaac Sim environment (python.sh)"
     exit 1
 fi
 
@@ -26,15 +52,9 @@ echo "Working directory: $REPO_ROOT"
 if [ -n "$CONDA_DEFAULT_ENV" ]; then
     echo "Conda environment: $CONDA_DEFAULT_ENV"
 else
-    echo "Python: $(which python)"
+    echo "Python interpreter: $PYTHON_BIN"
 fi
 echo ""
-
-PYTHON_BIN=${PYTHON_BIN:-/workspace/isaaclab/_isaac_sim/python.sh}
-if [ ! -x "$PYTHON_BIN" ]; then
-    echo "WARNING: $PYTHON_BIN not found or not executable. Falling back to system python."
-    PYTHON_BIN=python
-fi
 
 "$PYTHON_BIN" scripts/environments/waypoints/quad_arm_waypoint_data_collection.py \
     --controller_type=dik \
