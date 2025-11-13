@@ -84,6 +84,9 @@ We provide an example USD asset—a kitchen scene. Please download related scene
             └── Plate
 ```
 
+> [!NOTE]
+> By default, LeIsaac now loads the calibrated SO101 follower shipped with Isaac Sim at `Robot/RobotStudio/so101_new_calib/so101_new_calib.usd`. Set `LEISAAC_SO101_FOLLOWER_USD_PATH=/absolute/path/to/your_robot.usd` if you want to override the USD (for example, to keep using the copy under `assets/robots/so101_follower.usd`).
+
 ### Scene Assets Download Table
 
 | Scene Name           | Description                        | Download Link                                                                            |

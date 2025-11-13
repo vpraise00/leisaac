@@ -60,7 +60,7 @@ class LiftDeskQuadArmSceneCfg(InteractiveSceneCfg):
 
     scene: AssetBaseCfg = DESK_LIFT_CFG.replace(prim_path="{ENV_REGEX_NS}/Scene")
 
-    desk: AssetBaseCfg = DESK_CFG.replace(prim_path="{ENV_REGEX_NS}/Desk")
+    # desk: AssetBaseCfg = DESK_CFG.replace(prim_path="{ENV_REGEX_NS}/Desk")
 
     north_arm: ArticulationCfg = SO101_FOLLOWER_CFG.replace(prim_path="{ENV_REGEX_NS}/North_Robot")
 
