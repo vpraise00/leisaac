@@ -7,7 +7,7 @@ from typing import Any
 import isaaclab.sim as sim_utils
 import isaaclab.envs.mdp as mdp
 from isaaclab.envs.mdp.recorders.recorders_cfg import ActionStateRecorderManagerCfg as RecordTerm
-from isaaclab.assets import ArticulationCfg, AssetBaseCfg
+from isaaclab.assets import ArticulationCfg, AssetBaseCfg, RigidObjectCfg
 from isaaclab.envs import ManagerBasedRLEnvCfg
 from isaaclab.managers import EventTermCfg as EventTerm
 from isaaclab.managers import ObservationGroupCfg as ObsGroup
@@ -60,7 +60,7 @@ class LiftDeskQuadArmSceneCfg(InteractiveSceneCfg):
 
     scene: AssetBaseCfg = DESK_LIFT_CFG.replace(prim_path="{ENV_REGEX_NS}/Scene")
 
-    # desk: AssetBaseCfg = DESK_CFG.replace(prim_path="{ENV_REGEX_NS}/Desk")
+    desk: RigidObjectCfg = DESK_CFG.replace(prim_path="{ENV_REGEX_NS}/Desk")
 
     north_arm: ArticulationCfg = SO101_FOLLOWER_CFG.replace(prim_path="{ENV_REGEX_NS}/North_Robot")
 
@@ -310,11 +310,13 @@ class LiftDeskQuadArmEnvCfg(ManagerBasedRLEnvCfg):
         self.scene.west_arm.init_state.pos = (0.0, -0.45, 0.01)
         self.scene.west_arm.init_state.rot = euler_deg_to_quat(0, 0, 90)  # 90° yaw, facing inward
 
-        # Desk position at center of square
-        self.scene.desk.init_state.pos = (0.4, -0.45, 0.05)
-        self.scene.desk.init_state.rot = (1.0, 0.0, 0.0, 0.0)
+        # Desk position at center of square (optional override)
+        if getattr(self.scene, "desk", None):
+            self.scene.desk.init_state.pos = (0.4, -0.45, 0.05)
+            self.scene.desk.init_state.rot = (1.0, 0.0, 0.0, 0.0)
 
-        parse_usd_and_create_subassets(DESK_LIFT_USD_PATH, self)
+        scene_asset_path = getattr(self, "scene_asset_path", DESK_LIFT_USD_PATH)
+        parse_usd_and_create_subassets(scene_asset_path, self)
 
     def use_teleop_device(self, teleop_device) -> None:
         self.actions = init_action_cfg(self.actions, device=teleop_device)

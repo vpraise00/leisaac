@@ -1,47 +1,25 @@
-import os
 from pathlib import Path
 
 import isaaclab.sim as sim_utils
 from isaaclab.actuators import ImplicitActuatorCfg
 from isaaclab.assets.articulation import ArticulationCfg
-from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
 
 from leisaac.utils.constant import ASSETS_ROOT
 
 
 """Configuration for the SO101 Follower Robot."""
-SO101_FOLLOWER_LOCAL_ASSET_PATH = Path(ASSETS_ROOT) / "robots" / "so101_follower.usd"
-SO101_FOLLOWER_ISAAC_SIM_REL_PATH = "Robot/RobotStudio/so101_new_calib/so101_new_calib.usd"
-SO101_FOLLOWER_ISAAC_SIM_ASSET_PATH = (
-    f"{ISAAC_NUCLEUS_DIR}/{SO101_FOLLOWER_ISAAC_SIM_REL_PATH}"
-    if ISAAC_NUCLEUS_DIR
-    else None
-)
-
-SO101_FOLLOWER_ASSET_PATH = os.environ.get(
-    "LEISAAC_SO101_FOLLOWER_USD_PATH",
-    SO101_FOLLOWER_ISAAC_SIM_ASSET_PATH
-    or str(SO101_FOLLOWER_LOCAL_ASSET_PATH),
-)
+SO101_FOLLOWER_ASSET_PATH = Path(ASSETS_ROOT) / "robots" / "so101_follower.usd"
 
 SO101_FOLLOWER_CFG = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
         usd_path=str(SO101_FOLLOWER_ASSET_PATH),
-        rigid_props=sim_utils.RigidBodyPropertiesCfg(
-            disable_gravity=False,
-        ),
+        rigid_props=sim_utils.RigidBodyPropertiesCfg(disable_gravity=False),
         articulation_props=sim_utils.ArticulationRootPropertiesCfg(
             enabled_self_collisions=True,
-            solver_position_iteration_count=8,
-            solver_velocity_iteration_count=8,
+            solver_position_iteration_count=4,
+            solver_velocity_iteration_count=4,
             fix_root_link=True,
         ),
-        collision_props=sim_utils.CollisionPropertiesCfg(
-            collision_enabled=True,
-            contact_offset=0.05,
-            rest_offset=0.001,
-        ),
-        activate_contact_sensors=True,
     ),
     init_state=ArticulationCfg.InitialStateCfg(
         pos=(2.2, -0.61, 0.89),
@@ -52,8 +30,8 @@ SO101_FOLLOWER_CFG = ArticulationCfg(
             "elbow_flex": 0.0,
             "wrist_flex": 0.0,
             "wrist_roll": 0.0,
-            "gripper": 0.0
-        }
+            "gripper": 0.0,
+        },
     ),
     actuators={
         "sts3215-gripper": ImplicitActuatorCfg(
@@ -64,15 +42,22 @@ SO101_FOLLOWER_CFG = ArticulationCfg(
             damping=0.60,
         ),
         "sts3215-arm": ImplicitActuatorCfg(
-            joint_names_expr=["shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll"],
+            joint_names_expr=[
+                "shoulder_pan",
+                "shoulder_lift",
+                "elbow_flex",
+                "wrist_flex",
+                "wrist_roll",
+            ],
             effort_limit_sim=10,
             velocity_limit_sim=10,
             stiffness=17.8,
             damping=0.60,
-        )
+        ),
     },
     soft_joint_pos_limit_factor=1.0,
 )
+
 
 # joint limit written in USD (degree)
 SO101_FOLLOWER_USD_JOINT_LIMLITS = {
