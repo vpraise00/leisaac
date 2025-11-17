@@ -52,45 +52,45 @@ def init_action_cfg(action_cfg, device):
         )
     elif device in ['quad-so101leader']:
         # North arm
-        action_cfg.north_arm_action = mdp.JointPositionActionCfg(
+        action_cfg.north_arm_action = mdp.RelativeJointPositionActionCfg(
             asset_name="north_arm",
             joint_names=["shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll"],
             scale=1.0,
         )
-        action_cfg.north_gripper_action = mdp.JointPositionActionCfg(
+        action_cfg.north_gripper_action = mdp.RelativeJointPositionActionCfg(
             asset_name="north_arm",
             joint_names=["gripper"],
             scale=1.0,
         )
         # East arm
-        action_cfg.east_arm_action = mdp.JointPositionActionCfg(
+        action_cfg.east_arm_action = mdp.RelativeJointPositionActionCfg(
             asset_name="east_arm",
             joint_names=["shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll"],
             scale=1.0,
         )
-        action_cfg.east_gripper_action = mdp.JointPositionActionCfg(
+        action_cfg.east_gripper_action = mdp.RelativeJointPositionActionCfg(
             asset_name="east_arm",
             joint_names=["gripper"],
             scale=1.0,
         )
         # West arm
-        action_cfg.west_arm_action = mdp.JointPositionActionCfg(
+        action_cfg.west_arm_action = mdp.RelativeJointPositionActionCfg(
             asset_name="west_arm",
             joint_names=["shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll"],
             scale=1.0,
         )
-        action_cfg.west_gripper_action = mdp.JointPositionActionCfg(
+        action_cfg.west_gripper_action = mdp.RelativeJointPositionActionCfg(
             asset_name="west_arm",
             joint_names=["gripper"],
             scale=1.0,
         )
         # South arm
-        action_cfg.south_arm_action = mdp.JointPositionActionCfg(
+        action_cfg.south_arm_action = mdp.RelativeJointPositionActionCfg(
             asset_name="south_arm",
             joint_names=["shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll"],
             scale=1.0,
         )
-        action_cfg.south_gripper_action = mdp.JointPositionActionCfg(
+        action_cfg.south_gripper_action = mdp.RelativeJointPositionActionCfg(
             asset_name="south_arm",
             joint_names=["gripper"],
             scale=1.0,

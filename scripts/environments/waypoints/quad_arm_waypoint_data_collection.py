@@ -31,8 +31,8 @@ parser.add_argument("--hold_steps", type=int, default=None, help="Override hold_
 parser.add_argument("--episode_end_delay", type=float, default=2.0, help="Delay in seconds after last waypoint before ending episode.")
 parser.add_argument("--position_tol", type=float, default=0.05, help="Position convergence tolerance.")
 parser.add_argument("--orientation_tol", type=float, default=0.02, help="Orientation convergence tolerance.")
-parser.add_argument("--pose_interp_gain", type=float, default=0.3, help="Pose interpolation gain.")
-parser.add_argument("--interp_gain", type=float, default=0.3, help="Joint interpolation gain (only for dik).")
+parser.add_argument("--pose_interp_gain", type=float, default=0.15, help="Pose interpolation gain.")
+parser.add_argument("--interp_gain", type=float, default=0.15, help="Joint interpolation gain (only for dik).")
 parser.add_argument("--command_type", type=str, default="position", choices=["position", "pose"], help="IK command type (only for dik).")
 parser.add_argument("--force_wrist_down", action="store_true", default=False, help="Force wrist_flex joint to point downward.")
 parser.add_argument("--wrist_flex_angle", type=float, default=1.57, help="Target angle for wrist_flex joint in radians (default: 1.57 = 90 deg).")
@@ -193,15 +193,26 @@ def main():
         grip_offset = 0.02
         lift_delta = 0.10
 
+        leg_offsets_outer = {
+            "north": torch.tensor([0.0, 0.05, safe_offset], device=env.device),
+            "south": torch.tensor([0.0, -0.05, safe_offset], device=env.device),
+            "east": torch.tensor([0.05, 0.0, safe_offset], device=env.device),
+            "west": torch.tensor([-0.05, 0.0, safe_offset], device=env.device),
+        }
+
+        legs_outer_xyz = {k: v + leg_offsets_outer[k] for k, v in legs_world.items()}
         legs_safe_xyz = {k: v + torch.tensor([0.0, 0.0, safe_offset], device=env.device) for k, v in legs_world.items()}
         legs_grip_xyz = {k: v + torch.tensor([0.0, 0.0, grip_offset], device=env.device) for k, v in legs_world.items()}
         legs_lift_xyz = {k: legs_grip_xyz[k] + torch.tensor([0.0, 0.0, lift_delta], device=env.device) for k in legs_world.keys()}
 
+        legs_outer = {k: pose_from_xyz(v) for k, v in legs_outer_xyz.items()}
         legs_safe = {k: pose_from_xyz(v) for k, v in legs_safe_xyz.items()}
         legs_grip = {k: pose_from_xyz(v) for k, v in legs_grip_xyz.items()}
         legs_lift = {k: pose_from_xyz(v) for k, v in legs_lift_xyz.items()}
         return [
-            WaypointCommand(legs_safe["north"], legs_safe["east"], legs_safe["west"], legs_safe["south"], 0.7, 0.7, 0.7, 0.7, 50),
+            # Extra align step outside legs to let wrist_roll settle
+            WaypointCommand(legs_outer["north"], legs_outer["east"], legs_outer["west"], legs_outer["south"], 0.7, 0.7, 0.7, 0.7, 120),
+            WaypointCommand(legs_safe["north"], legs_safe["east"], legs_safe["west"], legs_safe["south"], 0.7, 0.7, 0.7, 0.7, 80),
             WaypointCommand(legs_grip["north"], legs_grip["east"], legs_grip["west"], legs_grip["south"], 0.7, 0.7, 0.7, 0.7, 40),
             WaypointCommand(legs_grip["north"], legs_grip["east"], legs_grip["west"], legs_grip["south"], 0.0, 0.0, 0.0, 0.0, 40),
             WaypointCommand(legs_lift["north"], legs_lift["east"], legs_lift["west"], legs_lift["south"], 0.0, 0.0, 0.0, 0.0, 80),
@@ -213,15 +224,18 @@ def main():
     if args_cli.auto_table_legs:
         table_usd = MINI_TABLE_USD_PATH
         stage = general_assets.get_stage(table_usd)
-
-        # Try explicit expected paths first.
+        legs_world = {}
         candidate_paths = [
             "/MiniTable/mini_table_instance/tableleg_north",
             "/MiniTable/mini_table_instance/tableleg_east",
             "/MiniTable/mini_table_instance/tableleg_west",
             "/MiniTable/mini_table_instance/tableleg_south",
+            # fallback if USD doesn’t have the instance scope
+            "/MiniTable/tableleg_north",
+            "/MiniTable/tableleg_east",
+            "/MiniTable/tableleg_west",
+            "/MiniTable/tableleg_south",
         ]
-        legs_world = {}
         for path in candidate_paths:
             prim = stage.GetPrimAtPath(path)
             if prim:
@@ -229,25 +243,31 @@ def main():
                 pos, _ = general_assets.get_prim_pos_rot(prim)
                 legs_world[name] = torch.tensor(pos, device=env.device, dtype=torch.float32)
 
-        # If not all found, fall back to search for any prim containing "tableleg".
         if len(legs_world) < 4:
-            legs_world.clear()
+            # Try generic search for any prim containing "tableleg"
             all_prims = general_assets.get_all_prims(stage)
             for prim in all_prims:
-                name = prim.GetPath().pathString
-                if "tableleg" in name.lower():
+                pname = prim.GetPath().pathString
+                if "tableleg" in pname.lower():
                     pos, _ = general_assets.get_prim_pos_rot(prim)
-                    legs_world[name.split('/')[-1]] = torch.tensor(pos, device=env.device, dtype=torch.float32)
-            if len(legs_world) < 4:
-                raise RuntimeError(f"Could not find 4 tableleg prims in {table_usd}. Found: {list(legs_world.keys())}")
+                    legs_world[pname.split("/")[-1]] = torch.tensor(pos, device=env.device, dtype=torch.float32)
 
-        # apply table spawn offset from env cfg (default z=0.85)
         table_offset = torch.zeros(3, device=env.device)
         if hasattr(env_cfg.scene, "mini_table") and getattr(env_cfg.scene.mini_table, "init_state", None):
             if getattr(env_cfg.scene.mini_table.init_state, "pos", None):
                 table_offset = torch.tensor(env_cfg.scene.mini_table.init_state.pos, device=env.device, dtype=torch.float32)
         for name in legs_world:
             legs_world[name] = legs_world[name] + table_offset
+
+        if len(legs_world) < 4:
+            print(f"[AutoTable] Could not find 4 tableleg prims in {table_usd}. Found: {list(legs_world.keys())}. Using default square around table center.")
+            default = {
+                "north": torch.tensor([0.15, 0.15, 0.0], device=env.device),
+                "east": torch.tensor([0.15, -0.15, 0.0], device=env.device),
+                "west": torch.tensor([-0.15, -0.15, 0.0], device=env.device),
+                "south": torch.tensor([-0.15, 0.15, 0.0], device=env.device),
+            }
+            legs_world = {k: v + table_offset + torch.tensor([0.0, 0.0, 0.0], device=env.device) for k, v in default.items()}
 
         waypoints = generate_leg_waypoints(legs_world)
         waypoint_source = f"auto-generated from table legs ({table_usd})"

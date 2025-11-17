@@ -110,10 +110,10 @@ class QuadArmCollaborateDemoEnvCfg(LiftDeskQuadArmEnvCfg):
             # Start in a tucked/sitting pose to avoid colliding with the table top.
             arm_cfg.init_state.joint_pos = {
                 "shoulder_pan": 0.0,
-                "shoulder_lift": -1.1,  # fold down
-                # elbow limit is [-1.745, 1.571] rad; keep safely inside
-                "elbow_flex": 1.4,      # bend inward within limits (~80 deg)
-                "wrist_flex": 1.0,      # tuck wrist
+                # Relaxed tucked pose (closer to initial waypoints to reduce IK jumps).
+                "shoulder_lift": -0.9,
+                "elbow_flex": 1.2,
+                "wrist_flex": 0.8,
                 "wrist_roll": 0.0,
                 "gripper": 0.0,
             }

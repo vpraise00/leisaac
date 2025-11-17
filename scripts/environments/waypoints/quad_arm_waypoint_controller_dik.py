@@ -55,6 +55,7 @@ class QuadArmWaypointController:
         wrist_flex_angle: float = 1.57,
         wrist_flex_min: Optional[float] = None,
         wrist_flex_max: Optional[float] = None,
+        max_joint_step: float = 0.25,
     ):
         """Initialize quad-arm waypoint controller."""
         self.env = env
@@ -66,6 +67,14 @@ class QuadArmWaypointController:
         self.wrist_flex_angle = wrist_flex_angle
         self.wrist_flex_min = wrist_flex_min
         self.wrist_flex_max = wrist_flex_max
+        self.max_joint_step = max_joint_step
+        # Desired wrist roll orientation per arm (rad) to face legs sideways.
+        self.wrist_roll_targets = {
+            "north": -1.57,
+            "east": 0.0,
+            "west": 3.14,
+            "south": 1.57,
+        }
 
         # Setup arms
         self.north_arm = env.scene["north_arm"]
@@ -451,12 +460,60 @@ class QuadArmWaypointController:
                 print(f"  West delta:  {joint_delta_west.item():.3f} rad")
                 print(f"  South delta: {joint_delta_south.item():.3f} rad")
 
-        # Compose action
+        # Clamp per-step joint change to improve stability
+        def clamp_step(targets, current):
+            if self.max_joint_step is None:
+                return targets
+            return torch.clamp(
+                targets,
+                min=current - self.max_joint_step,
+                max=current + self.max_joint_step,
+            )
+
+        # Force wrist_roll to preset sideways angles to better wrap legs
+        wrist_roll_idx = ARM_JOINT_NAMES.index("wrist_roll")
+        joint_targets_north[:, wrist_roll_idx] = self.wrist_roll_targets["north"]
+        joint_targets_east[:, wrist_roll_idx] = self.wrist_roll_targets["east"]
+        joint_targets_west[:, wrist_roll_idx] = self.wrist_roll_targets["west"]
+        joint_targets_south[:, wrist_roll_idx] = self.wrist_roll_targets["south"]
+
+        joint_targets_north = clamp_step(joint_targets_north, joint_pos_north)
+        joint_targets_east = clamp_step(joint_targets_east, joint_pos_east)
+        joint_targets_west = clamp_step(joint_targets_west, joint_pos_west)
+        joint_targets_south = clamp_step(joint_targets_south, joint_pos_south)
+
+        # Debug: print deltas after clamping to confirm non-zero motion
+        if not hasattr(self, "_delta_debug_counter"):
+            self._delta_debug_counter = 0
+        self._delta_debug_counter += 1
+        if self._delta_debug_counter % 30 == 0:
+            d_north = (joint_targets_north - joint_pos_north).abs().max().item()
+            d_east = (joint_targets_east - joint_pos_east).abs().max().item()
+            d_west = (joint_targets_west - joint_pos_west).abs().max().item()
+            d_south = (joint_targets_south - joint_pos_south).abs().max().item()
+            print(f"[IK DEBUG] Post-clamp joint delta max (rad) - N:{d_north:.3f} E:{d_east:.3f} W:{d_west:.3f} S:{d_south:.3f}")
+
+        # Convert to relative deltas (action cfg uses RelativeJointPositionActionCfg)
+        delta_north = joint_targets_north - joint_pos_north
+        delta_east = joint_targets_east - joint_pos_east
+        delta_west = joint_targets_west - joint_pos_west
+        delta_south = joint_targets_south - joint_pos_south
+
+        # Invert gripper sense: waypoint value 0.0/1.0 -> map to 1.0/0.0 (open/close flipped)
+        def map_grip(val):
+            return max(0.0, min(1.0, 1.0 - val))
+
+        delta_grip_north = torch.tensor([[map_grip(self.current_waypoint.north_gripper)]], device=self.env.device) - joint_pos_north[:, 5:6]
+        delta_grip_east = torch.tensor([[map_grip(self.current_waypoint.east_gripper)]], device=self.env.device) - joint_pos_east[:, 5:6]
+        delta_grip_west = torch.tensor([[map_grip(self.current_waypoint.west_gripper)]], device=self.env.device) - joint_pos_west[:, 5:6]
+        delta_grip_south = torch.tensor([[map_grip(self.current_waypoint.south_gripper)]], device=self.env.device) - joint_pos_south[:, 5:6]
+
+        # Compose action (as deltas)
         action = self._compose_quad_arm_action(
-            joint_targets_north, self.current_waypoint.north_gripper,
-            joint_targets_east, self.current_waypoint.east_gripper,
-            joint_targets_west, self.current_waypoint.west_gripper,
-            joint_targets_south, self.current_waypoint.south_gripper
+            delta_north, delta_grip_north,
+            delta_east, delta_grip_east,
+            delta_west, delta_grip_west,
+            delta_south, delta_grip_south
         )
 
         # Check convergence
