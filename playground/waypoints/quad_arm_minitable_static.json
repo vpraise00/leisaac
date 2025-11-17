@@ -17,18 +17,18 @@
   },
   {
     "comment": "Grip height approach (open)",
-    "north": { "position": [0.20, 0.20, 0.87], "gripper": 0.7 },
-    "east":  { "position": [0.20, -0.20, 0.87], "gripper": 0.7 },
-    "west":  { "position": [-0.20, -0.20, 0.87], "gripper": 0.7 },
-    "south": { "position": [-0.20, 0.20, 0.87], "gripper": 0.7 },
+    "north": { "position": [0.15, 0.15, 0.87], "gripper": 0.7 },
+    "east":  { "position": [0.15, -0.15, 0.87], "gripper": 0.7 },
+    "west":  { "position": [-0.15, -0.15, 0.87], "gripper": 0.7 },
+    "south": { "position": [-0.15, 0.15, 0.87], "gripper": 0.7 },
     "hold_steps": 40
   },
   {
     "comment": "Grip legs (close)",
-    "north": { "position": [0.20, 0.20, 0.87], "gripper": 0.0 },
-    "east":  { "position": [0.20, -0.20, 0.87], "gripper": 0.0 },
-    "west":  { "position": [-0.20, -0.20, 0.87], "gripper": 0.0 },
-    "south": { "position": [-0.20, 0.20, 0.87], "gripper": 0.0 },
+    "north": { "position": [0.15, 0.15, 0.87], "gripper": 0.0 },
+    "east":  { "position": [0.15, -0.15, 0.87], "gripper": 0.0 },
+    "west":  { "position": [-0.15, -0.15, 0.87], "gripper": 0.0 },
+    "south": { "position": [-0.15, 0.15, 0.87], "gripper": 0.0 },
     "hold_steps": 40
   },
   {
