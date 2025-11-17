@@ -20,6 +20,9 @@ MINI_TABLE_CFG = RigidObjectCfg(
     prim_path="{ENV_REGEX_NS}/MiniTable",
     spawn=sim_utils.UsdFileCfg(
         usd_path=MINI_TABLE_USD_PATH,
+        mass_props=sim_utils.MassPropertiesCfg(
+            mass=2.0,  # lighter table (~2kg)
+        ),
     ),
     init_state=RigidObjectCfg.InitialStateCfg(
         pos=(0.0, 0.0, 0.85),

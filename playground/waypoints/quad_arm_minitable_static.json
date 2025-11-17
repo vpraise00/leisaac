@@ -32,11 +32,11 @@
     "hold_steps": 40
   },
   {
-    "comment": "Lift 0.1m (close)",
-    "north": { "position": [0.20, 0.20, 0.97], "gripper": 0.0 },
-    "east":  { "position": [0.20, -0.20, 0.97], "gripper": 0.0 },
-    "west":  { "position": [-0.20, -0.20, 0.97], "gripper": 0.0 },
-    "south": { "position": [-0.20, 0.20, 0.97], "gripper": 0.0 },
+    "comment": "Lift 0.2m (close)",
+    "north": { "position": [0.15, 0.15, 1.02], "gripper": 0.0 },
+    "east":  { "position": [0.15, -0.15, 1.02], "gripper": 0.0 },
+    "west":  { "position": [-0.15, -0.15, 1.02], "gripper": 0.0 },
+    "south": { "position": [-0.15, 0.15, 1.02], "gripper": 0.0 },
     "hold_steps": 90
   },
   {
