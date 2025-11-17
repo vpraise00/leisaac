@@ -1,0 +1,74 @@
+[
+  {
+    "comment": "Outside diagonal (open)",
+    "north": { "position": [0.25, 0.25, 0.87], "gripper": 0.7 },
+    "east":  { "position": [0.25, -0.25, 0.87], "gripper": 0.7 },
+    "west":  { "position": [-0.25, -0.25, 0.87], "gripper": 0.7 },
+    "south": { "position": [-0.25, 0.25, 0.87], "gripper": 0.7 },
+    "hold_steps": 150
+  },
+  {
+    "comment": "Safe above legs (open)",
+    "north": { "position": [0.20, 0.20, 0.87], "gripper": 0.7 },
+    "east":  { "position": [0.20, -0.20, 0.87], "gripper": 0.7 },
+    "west":  { "position": [-0.20, -0.20, 0.87], "gripper": 0.7 },
+    "south": { "position": [-0.20, 0.20, 0.87], "gripper": 0.7 },
+    "hold_steps": 100
+  },
+  {
+    "comment": "Grip height approach (open)",
+    "north": { "position": [0.20, 0.20, 0.87], "gripper": 0.7 },
+    "east":  { "position": [0.20, -0.20, 0.87], "gripper": 0.7 },
+    "west":  { "position": [-0.20, -0.20, 0.87], "gripper": 0.7 },
+    "south": { "position": [-0.20, 0.20, 0.87], "gripper": 0.7 },
+    "hold_steps": 40
+  },
+  {
+    "comment": "Grip legs (close)",
+    "north": { "position": [0.20, 0.20, 0.87], "gripper": 0.0 },
+    "east":  { "position": [0.20, -0.20, 0.87], "gripper": 0.0 },
+    "west":  { "position": [-0.20, -0.20, 0.87], "gripper": 0.0 },
+    "south": { "position": [-0.20, 0.20, 0.87], "gripper": 0.0 },
+    "hold_steps": 40
+  },
+  {
+    "comment": "Lift 0.1m (close)",
+    "north": { "position": [0.20, 0.20, 0.97], "gripper": 0.0 },
+    "east":  { "position": [0.20, -0.20, 0.97], "gripper": 0.0 },
+    "west":  { "position": [-0.20, -0.20, 0.97], "gripper": 0.0 },
+    "south": { "position": [-0.20, 0.20, 0.97], "gripper": 0.0 },
+    "hold_steps": 90
+  },
+  {
+    "comment": "Lower back (close)",
+    "north": { "position": [0.20, 0.20, 0.87], "gripper": 0.0 },
+    "east":  { "position": [0.20, -0.20, 0.87], "gripper": 0.0 },
+    "west":  { "position": [-0.20, -0.20, 0.87], "gripper": 0.0 },
+    "south": { "position": [-0.20, 0.20, 0.87], "gripper": 0.0 },
+    "hold_steps": 40
+  },
+  {
+    "comment": "Release legs (open)",
+    "north": { "position": [0.20, 0.20, 0.87], "gripper": 0.7 },
+    "east":  { "position": [0.20, -0.20, 0.87], "gripper": 0.7 },
+    "west":  { "position": [-0.20, -0.20, 0.87], "gripper": 0.7 },
+    "south": { "position": [-0.20, 0.20, 0.87], "gripper": 0.7 },
+    "hold_steps": 30
+  },
+  {
+    "comment": "Retreat to outside (open)",
+    "north": { "position": [0.25, 0.25, 0.87], "gripper": 0.7 },
+    "east":  { "position": [0.25, -0.25, 0.87], "gripper": 0.7 },
+    "west":  { "position": [-0.25, -0.25, 0.87], "gripper": 0.7 },
+    "south": { "position": [-0.25, 0.25, 0.87], "gripper": 0.7 },
+    "hold_steps": 60
+  },
+  {
+    "comment": "Ready above legs (open)",
+    "north": { "position": [0.25, 0.25, 0.87], "gripper": 0.7 },
+    "east":  { "position": [0.25, -0.25, 0.87], "gripper": 0.7 },
+    "west":  { "position": [-0.25, -0.25, 0.87], "gripper": 0.7 },
+    "south": { "position": [-0.25, 0.25, 0.87], "gripper": 0.7 },
+    "hold_steps": 40
+  }
+]

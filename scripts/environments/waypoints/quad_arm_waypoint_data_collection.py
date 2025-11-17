@@ -193,16 +193,20 @@ def main():
         grip_offset = 0.02
         lift_delta = 0.10
 
-        leg_offsets_outer = {
-            "north": torch.tensor([0.0, 0.05, safe_offset], device=env.device),
-            "south": torch.tensor([0.0, -0.05, safe_offset], device=env.device),
-            "east": torch.tensor([0.05, 0.0, safe_offset], device=env.device),
-            "west": torch.tensor([-0.05, 0.0, safe_offset], device=env.device),
-        }
+        outward = 0.10  # extra radial padding away from table center
+        center = torch.stack(list(legs_world.values())).mean(dim=0)
 
-        legs_outer_xyz = {k: v + leg_offsets_outer[k] for k, v in legs_world.items()}
-        legs_safe_xyz = {k: v + torch.tensor([0.0, 0.0, safe_offset], device=env.device) for k, v in legs_world.items()}
-        legs_grip_xyz = {k: v + torch.tensor([0.0, 0.0, grip_offset], device=env.device) for k, v in legs_world.items()}
+        def radial_offset(pos):
+            dir_xy = pos[:2] - center[:2]
+            norm = torch.norm(dir_xy)
+            if norm < 1e-6:
+                return torch.tensor([0.0, 0.0, 0.0], device=env.device)
+            unit_xy = dir_xy / norm
+            return torch.tensor([unit_xy[0] * outward, unit_xy[1] * outward, 0.0], device=env.device)
+
+        legs_outer_xyz = {k: v + radial_offset(v) + torch.tensor([0.0, 0.0, safe_offset], device=env.device) for k, v in legs_world.items()}
+        legs_safe_xyz = {k: v + radial_offset(v) + torch.tensor([0.0, 0.0, safe_offset], device=env.device) for k, v in legs_world.items()}
+        legs_grip_xyz = {k: v + radial_offset(v) + torch.tensor([0.0, 0.0, grip_offset], device=env.device) for k, v in legs_world.items()}
         legs_lift_xyz = {k: legs_grip_xyz[k] + torch.tensor([0.0, 0.0, lift_delta], device=env.device) for k in legs_world.keys()}
 
         legs_outer = {k: pose_from_xyz(v) for k, v in legs_outer_xyz.items()}

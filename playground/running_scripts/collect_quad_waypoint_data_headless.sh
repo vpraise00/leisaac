@@ -80,13 +80,13 @@ echo ""
     --controller_type=dik \
     --task=LeIsaac-QuadArm-CollaborateDemo-v0 \
     --step_hz=30 \
-    --auto_table_legs \
+    --waypoint_file="playground/waypoints/quad_arm_minitable_static.json" \
     --record \
     --dataset_file="datasets/quad_waypoint_demos_50epis_nograv.hdf5" \
     --num_demos=50 \
-    --position_tol=0.09 \
-    --pose_interp_gain=0.25 \
-    --interp_gain=0.25 \
+    --position_tol=0.12 \
+    --pose_interp_gain=0.15 \
+    --interp_gain=0.15 \
     --command_type=position \
     --episode_timeout=90 \
     --enable_cameras \
