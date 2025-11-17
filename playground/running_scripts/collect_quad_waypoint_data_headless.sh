@@ -80,7 +80,7 @@ echo ""
     --controller_type=dik \
     --task=LeIsaac-QuadArm-CollaborateDemo-v0 \
     --step_hz=30 \
-    --waypoint_file="playground/waypoints/quad_arm_demo.json" \
+    --auto_table_legs \
     --record \
     --dataset_file="datasets/quad_waypoint_demos_50epis_nograv.hdf5" \
     --num_demos=50 \

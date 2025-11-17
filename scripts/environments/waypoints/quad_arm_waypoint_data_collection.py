@@ -24,7 +24,8 @@ parser.add_argument("--seed", type=int, default=None, help="Seed for the environ
 
 # Waypoint parameters
 parser.add_argument("--controller_type", type=str, default="dik", choices=["dik"], help="Controller type: 'dik' (DifferentialIK).")
-parser.add_argument("--waypoint_file", type=str, required=True, help="Path to JSON file with waypoints.")
+parser.add_argument("--waypoint_file", type=str, default=None, help="Path to JSON file with waypoints.")
+parser.add_argument("--auto_table_legs", action="store_true", default=False, help="Auto-generate waypoints from mini table leg world poses.")
 parser.add_argument("--step_hz", type=int, default=30, help="Environment stepping rate in Hz.")
 parser.add_argument("--hold_steps", type=int, default=None, help="Override hold_steps for all waypoints.")
 parser.add_argument("--episode_end_delay", type=float, default=2.0, help="Delay in seconds after last waypoint before ending episode.")
@@ -75,7 +76,9 @@ from isaaclab_tasks.utils import parse_env_cfg
 from isaaclab.managers import TerminationTermCfg
 
 from leisaac.enhance.managers import StreamingRecorderManager
-from quad_arm_waypoint_controller_dik import QuadArmWaypointController, load_waypoints_from_json
+from quad_arm_waypoint_controller_dik import QuadArmWaypointController, load_waypoints_from_json, WaypointCommand
+from leisaac.assets.scenes.collaborate_demo import MINI_TABLE_USD_PATH
+from leisaac.utils import general_assets
 
 
 class RateLimiter:
@@ -145,9 +148,116 @@ def main():
     else:
         print("[WaypointRunner] Environment created (playback only, no recording).")
 
-    # Load waypoints
-    waypoints = load_waypoints_from_json(args_cli.waypoint_file, env.device)
-    print(f"[DataCollection] Loaded {len(waypoints)} waypoints from {args_cli.waypoint_file}")
+    def pose_from_xyz(xyz):
+        return torch.tensor([[xyz[0], xyz[1], xyz[2], 1.0, 0.0, 0.0, 0.0]], device=env.device, dtype=torch.float32)
+
+    def assign_legs(legs_world: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
+        """Map found leg prims to north/east/west/south."""
+        mapped: dict[str, torch.Tensor] = {}
+        # 1) Try name-based mapping
+        for name, pos in legs_world.items():
+            lname = name.lower()
+            if "north" in lname:
+                mapped["north"] = pos
+            elif "east" in lname:
+                mapped["east"] = pos
+            elif "west" in lname:
+                mapped["west"] = pos
+            elif "south" in lname:
+                mapped["south"] = pos
+        # 2) If not all four found, fall back to geometric mapping on xy
+        if len(mapped) < 4:
+            if len(legs_world) < 4:
+                raise RuntimeError(f"Need 4 legs, found {len(legs_world)}: {list(legs_world.keys())}")
+            # use first four entries
+            items = list(legs_world.items())[:4]
+            positions = torch.stack([p for _, p in items])
+            center = positions.mean(dim=0)
+            # compute angle from center
+            angles = torch.atan2(positions[:, 1] - center[1], positions[:, 0] - center[0])  # rad
+            # sort by angle: north ~ pi/2, south ~ -pi/2, east ~ 0, west ~ pi
+            order = torch.argsort(angles)  # ascending
+            sorted_items = [items[i] for i in order.tolist()]
+            # pick by extreme y/x
+            north = max(items, key=lambda kv: kv[1][1])
+            south = min(items, key=lambda kv: kv[1][1])
+            east = max(items, key=lambda kv: kv[1][0])
+            west = min(items, key=lambda kv: kv[1][0])
+            mapped = {"north": north[1], "east": east[1], "west": west[1], "south": south[1]}
+        return mapped
+
+    def generate_leg_waypoints(legs_world):
+        # legs_world contains XYZ positions (no orientation)
+        legs_world = assign_legs(legs_world)
+        safe_offset = 0.15
+        grip_offset = 0.02
+        lift_delta = 0.10
+
+        legs_safe_xyz = {k: v + torch.tensor([0.0, 0.0, safe_offset], device=env.device) for k, v in legs_world.items()}
+        legs_grip_xyz = {k: v + torch.tensor([0.0, 0.0, grip_offset], device=env.device) for k, v in legs_world.items()}
+        legs_lift_xyz = {k: legs_grip_xyz[k] + torch.tensor([0.0, 0.0, lift_delta], device=env.device) for k in legs_world.keys()}
+
+        legs_safe = {k: pose_from_xyz(v) for k, v in legs_safe_xyz.items()}
+        legs_grip = {k: pose_from_xyz(v) for k, v in legs_grip_xyz.items()}
+        legs_lift = {k: pose_from_xyz(v) for k, v in legs_lift_xyz.items()}
+        return [
+            WaypointCommand(legs_safe["north"], legs_safe["east"], legs_safe["west"], legs_safe["south"], 0.7, 0.7, 0.7, 0.7, 50),
+            WaypointCommand(legs_grip["north"], legs_grip["east"], legs_grip["west"], legs_grip["south"], 0.7, 0.7, 0.7, 0.7, 40),
+            WaypointCommand(legs_grip["north"], legs_grip["east"], legs_grip["west"], legs_grip["south"], 0.0, 0.0, 0.0, 0.0, 40),
+            WaypointCommand(legs_lift["north"], legs_lift["east"], legs_lift["west"], legs_lift["south"], 0.0, 0.0, 0.0, 0.0, 80),
+            WaypointCommand(legs_grip["north"], legs_grip["east"], legs_grip["west"], legs_grip["south"], 0.0, 0.0, 0.0, 0.0, 40),
+            WaypointCommand(legs_grip["north"], legs_grip["east"], legs_grip["west"], legs_grip["south"], 0.7, 0.7, 0.7, 0.7, 30),
+            WaypointCommand(legs_safe["north"], legs_safe["east"], legs_safe["west"], legs_safe["south"], 0.7, 0.7, 0.7, 0.7, 40),
+        ]
+
+    if args_cli.auto_table_legs:
+        table_usd = MINI_TABLE_USD_PATH
+        stage = general_assets.get_stage(table_usd)
+
+        # Try explicit expected paths first.
+        candidate_paths = [
+            "/MiniTable/mini_table_instance/tableleg_north",
+            "/MiniTable/mini_table_instance/tableleg_east",
+            "/MiniTable/mini_table_instance/tableleg_west",
+            "/MiniTable/mini_table_instance/tableleg_south",
+        ]
+        legs_world = {}
+        for path in candidate_paths:
+            prim = stage.GetPrimAtPath(path)
+            if prim:
+                name = path.split("/")[-1].replace("tableleg_", "")
+                pos, _ = general_assets.get_prim_pos_rot(prim)
+                legs_world[name] = torch.tensor(pos, device=env.device, dtype=torch.float32)
+
+        # If not all found, fall back to search for any prim containing "tableleg".
+        if len(legs_world) < 4:
+            legs_world.clear()
+            all_prims = general_assets.get_all_prims(stage)
+            for prim in all_prims:
+                name = prim.GetPath().pathString
+                if "tableleg" in name.lower():
+                    pos, _ = general_assets.get_prim_pos_rot(prim)
+                    legs_world[name.split('/')[-1]] = torch.tensor(pos, device=env.device, dtype=torch.float32)
+            if len(legs_world) < 4:
+                raise RuntimeError(f"Could not find 4 tableleg prims in {table_usd}. Found: {list(legs_world.keys())}")
+
+        # apply table spawn offset from env cfg (default z=0.85)
+        table_offset = torch.zeros(3, device=env.device)
+        if hasattr(env_cfg.scene, "mini_table") and getattr(env_cfg.scene.mini_table, "init_state", None):
+            if getattr(env_cfg.scene.mini_table.init_state, "pos", None):
+                table_offset = torch.tensor(env_cfg.scene.mini_table.init_state.pos, device=env.device, dtype=torch.float32)
+        for name in legs_world:
+            legs_world[name] = legs_world[name] + table_offset
+
+        waypoints = generate_leg_waypoints(legs_world)
+        waypoint_source = f"auto-generated from table legs ({table_usd})"
+    else:
+        if args_cli.waypoint_file is None:
+            raise ValueError("waypoint_file is required unless --auto_table_legs is set")
+        waypoints = load_waypoints_from_json(args_cli.waypoint_file, env.device)
+        waypoint_source = args_cli.waypoint_file
+
+    print(f"[DataCollection] Loaded {len(waypoints)} waypoints from {waypoint_source}")
     print("[DataCollection] Waypoint sequence:")
     for idx, wp in enumerate(waypoints, 1):
         print(f"  Waypoint {idx}:")

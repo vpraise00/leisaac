@@ -1,5 +1,5 @@
 import isaaclab.sim as sim_utils
-from isaaclab.assets import AssetBaseCfg
+from isaaclab.assets import AssetBaseCfg, RigidObjectCfg
 from isaaclab.sensors import TiledCameraCfg
 from isaaclab.utils import configclass
 
@@ -7,6 +7,7 @@ from leisaac.assets.robots.lerobot import SO101_FOLLOWER_CFG
 from leisaac.assets.scenes.collaborate_demo import (
     COLLABORATE_DEMO_CFG,
     COLLABORATE_DEMO_USD_PATH,
+    MINI_TABLE_CFG,
 )
 from leisaac.tasks.lift_desk_quad_arm.lift_desk_quad_arm_env_cfg import (
     EventCfg as LiftDeskEventCfg,
@@ -23,6 +24,7 @@ class QuadArmCollaborateDemoSceneCfg(LiftDeskQuadArmSceneCfg):
     scene: AssetBaseCfg = COLLABORATE_DEMO_CFG.replace(prim_path="{ENV_REGEX_NS}/Scene")
 
     desk: AssetBaseCfg | None = None
+    mini_table: RigidObjectCfg = MINI_TABLE_CFG
 
     north_arm = SO101_FOLLOWER_CFG.replace(prim_path="{ENV_REGEX_NS}/North_Robot")
     east_arm = SO101_FOLLOWER_CFG.replace(prim_path="{ENV_REGEX_NS}/East_Robot")
@@ -105,3 +107,13 @@ class QuadArmCollaborateDemoEnvCfg(LiftDeskQuadArmEnvCfg):
         for arm_cfg, pos, yaw in placements:
             arm_cfg.init_state.pos = pos
             arm_cfg.init_state.rot = euler_deg_to_quat(0.0, 0.0, yaw)
+            # Start in a tucked/sitting pose to avoid colliding with the table top.
+            arm_cfg.init_state.joint_pos = {
+                "shoulder_pan": 0.0,
+                "shoulder_lift": -1.1,  # fold down
+                # elbow limit is [-1.745, 1.571] rad; keep safely inside
+                "elbow_flex": 1.4,      # bend inward within limits (~80 deg)
+                "wrist_flex": 1.0,      # tuck wrist
+                "wrist_roll": 0.0,
+                "gripper": 0.0,
+            }
