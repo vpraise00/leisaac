@@ -69,10 +69,12 @@ class QuadArmWaypointController:
         self.wrist_flex_max = wrist_flex_max
         self.max_joint_step = max_joint_step
         # Desired wrist roll orientation per arm (rad) to face legs sideways.
+        # Roll grippers sideways relative to table legs
+        # Roll grippers sideways relative to table legs
         self.wrist_roll_targets = {
             "north": -1.57,
-            "east": 0.0,
-            "west": 3.14,
+            "east": -1.57,
+            "west": 1.57,
             "south": 1.57,
         }
 
@@ -499,9 +501,9 @@ class QuadArmWaypointController:
         delta_west = joint_targets_west - joint_pos_west
         delta_south = joint_targets_south - joint_pos_south
 
-        # Invert gripper sense: waypoint value 0.0/1.0 -> map to 1.0/0.0 (open/close flipped)
+        # Direct gripper mapping: waypoint value 0.0/1.0 -> close/open
         def map_grip(val):
-            return max(0.0, min(1.0, 1.0 - val))
+            return max(0.0, min(1.0, val))
 
         delta_grip_north = torch.tensor([[map_grip(self.current_waypoint.north_gripper)]], device=self.env.device) - joint_pos_north[:, 5:6]
         delta_grip_east = torch.tensor([[map_grip(self.current_waypoint.east_gripper)]], device=self.env.device) - joint_pos_east[:, 5:6]

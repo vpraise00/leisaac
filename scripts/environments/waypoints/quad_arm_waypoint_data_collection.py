@@ -210,14 +210,23 @@ def main():
         legs_grip = {k: pose_from_xyz(v) for k, v in legs_grip_xyz.items()}
         legs_lift = {k: pose_from_xyz(v) for k, v in legs_lift_xyz.items()}
         return [
-            # Extra align step outside legs to let wrist_roll settle
-            WaypointCommand(legs_outer["north"], legs_outer["east"], legs_outer["west"], legs_outer["south"], 0.7, 0.7, 0.7, 0.7, 120),
-            WaypointCommand(legs_safe["north"], legs_safe["east"], legs_safe["west"], legs_safe["south"], 0.7, 0.7, 0.7, 0.7, 80),
+            # 1) Outside diagonal, gripper open
+            WaypointCommand(legs_outer["north"], legs_outer["east"], legs_outer["west"], legs_outer["south"], 0.7, 0.7, 0.7, 0.7, 150),
+            # 2) Move above legs (safe), gripper open
+            WaypointCommand(legs_safe["north"], legs_safe["east"], legs_safe["west"], legs_safe["south"], 0.7, 0.7, 0.7, 0.7, 100),
+            # 3) Move to grip height, gripper still open
             WaypointCommand(legs_grip["north"], legs_grip["east"], legs_grip["west"], legs_grip["south"], 0.7, 0.7, 0.7, 0.7, 40),
+            # 4) Close gripper at legs
             WaypointCommand(legs_grip["north"], legs_grip["east"], legs_grip["west"], legs_grip["south"], 0.0, 0.0, 0.0, 0.0, 40),
-            WaypointCommand(legs_lift["north"], legs_lift["east"], legs_lift["west"], legs_lift["south"], 0.0, 0.0, 0.0, 0.0, 80),
+            # 5) Lift 0.1m
+            WaypointCommand(legs_lift["north"], legs_lift["east"], legs_lift["west"], legs_lift["south"], 0.0, 0.0, 0.0, 0.0, 90),  # ~3s at 30Hz
+            # 6) Lower back to grip height
             WaypointCommand(legs_grip["north"], legs_grip["east"], legs_grip["west"], legs_grip["south"], 0.0, 0.0, 0.0, 0.0, 40),
+            # 7) Open gripper to release
             WaypointCommand(legs_grip["north"], legs_grip["east"], legs_grip["west"], legs_grip["south"], 0.7, 0.7, 0.7, 0.7, 30),
+            # 8) Retreat to outer/open position
+            WaypointCommand(legs_outer["north"], legs_outer["east"], legs_outer["west"], legs_outer["south"], 0.7, 0.7, 0.7, 0.7, 60),
+            # 9) Return to safe over legs (approx initial ready pose)
             WaypointCommand(legs_safe["north"], legs_safe["east"], legs_safe["west"], legs_safe["south"], 0.7, 0.7, 0.7, 0.7, 40),
         ]
 
